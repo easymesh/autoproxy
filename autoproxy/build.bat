@@ -15,8 +15,9 @@ exit /b 0
 
     mkdir output
 	
+	copy domain.json output\	
 	go build -ldflags="-w -s" -o output\autoproxy%TAG% .
-
+	
 	cd output
     tar -zcf ../autoproxy_%GOOS%_%GOARCH%.tar.gz *
 	cd ..
