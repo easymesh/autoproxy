@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/astaxie/beego/logs"
-	"github.com/easymesh/autoproxy/autoproxy_win/engin"
+	"github.com/easymesh/autoproxy/engin"
 	"net/http"
 	"strings"
 	"sync"
@@ -27,7 +27,7 @@ func AuthSwitch(auth *engin.AuthInfo) bool {
 	return AuthCheck(auth.User, auth.Token)
 }*/
 
-var LocalForward  engin.Forward
+var LocalForward engin.Forward
 var RemoteForward engin.Forward
 
 var mutex sync.Mutex

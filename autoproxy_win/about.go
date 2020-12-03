@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/astaxie/beego/logs"
+	"github.com/easymesh/autoproxy"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"os/exec"
@@ -67,7 +68,7 @@ func AboutAction() {
 				MaxSize:       Size{Width: 290, Height: 400},
 			},
 			Label{
-				Text: LangValue("version") + ": "+ VersionGet(),
+				Text: LangValue("version") + ": "+ autoproxy.VersionGet(),
 				TextAlignment: AlignCenter,
 			},
 			VSpacer{

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/astaxie/beego/logs"
-	"github.com/easymesh/autoproxy/autoproxy_win/engin"
+	"github.com/easymesh/autoproxy/engin"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"net/http"
@@ -168,7 +168,7 @@ func TestEngin(testhttps string, item *RemoteItem) (time.Duration, error) {
 		return 0, err
 	}
 
-	var auth * engin.AuthInfo
+	var auth *engin.AuthInfo
 	if item.Auth {
 		auth = &engin.AuthInfo{
 			User: item.User,

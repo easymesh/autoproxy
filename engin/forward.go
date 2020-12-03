@@ -40,7 +40,7 @@ func NewDefault(timeout int) (Forward, error) {
 	forward := &defaultForward{
 		trans: newTransport(timeout, nil),
 		tmout: timeout,
-		stop: make(chan struct{},1),
+		stop:  make(chan struct{},1),
 	}
 	forward.Add(1)
 	go func() {

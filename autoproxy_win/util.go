@@ -15,10 +15,6 @@ import (
 	mathrand "math/rand"
 )
 
-func VersionGet() string {
-	return "v1.2.4"
-}
-
 func SaveToFile(name string, body []byte) error {
 	return ioutil.WriteFile(name, body, 0664)
 }

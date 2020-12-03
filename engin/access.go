@@ -16,7 +16,7 @@ import (
 )
 
 func PublicFailDelay() {
-	time.Sleep(time.Second) // 防DOS攻击延时
+	time.Sleep(5 * time.Second) // 防DOS攻击延时
 }
 
 type HttpAccess struct {
@@ -52,9 +52,10 @@ func NoProxyHandler(w http.ResponseWriter, r *http.Request) {
 func AuthFailHandler(w http.ResponseWriter, r *http.Request)  {
 	PublicFailDelay()
 	logs.Warn("Request authentication failed. RemoteAddr: ", r.RemoteAddr)
+	w.Header().Add("Proxy-Authenticate", "Basic realm=\"Access to internal site\"")
 	http.Error(w,
 		"Request authentication failed.",
-		http.StatusUnauthorized)
+		http.StatusProxyAuthRequired)
 }
 
 func AuthInfoParse(r *http.Request) *AuthInfo {
@@ -77,7 +78,7 @@ func (acc *HttpAccess)AuthHandlerSet(handler func(auth *AuthInfo) bool)  {
 	acc.authHandler = handler
 }
 
-func (acc *HttpAccess)ForwardHandlerSet(handler func(address string, r *http.Request) Forward )  {
+func (acc *HttpAccess)ForwardHandlerSet(handler func(address string, r *http.Request) Forward)  {
 	acc.forwardHandler = handler
 }
 
@@ -85,7 +86,14 @@ func (acc *HttpAccess)AuthHttp(r *http.Request) bool {
 	if acc.authHandler == nil {
 		return true
 	}
-	return acc.authHandler(AuthInfoParse(r))
+	if ( AuthCache(r) == true ) {
+		return true
+	}
+	auth := acc.authHandler(AuthInfoParse(r))
+	if auth == true {
+		AuthLogin(r)
+	}
+	return auth
 }
 
 func (acc *HttpAccess)Stat() (uint64,uint64) {
