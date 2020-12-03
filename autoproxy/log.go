@@ -34,6 +34,7 @@ func LogInit(logpath string, debug bool) error {
 	if err != nil {
 		return err
 	}
+	logs.Async(100)
 	logs.EnableFuncCallDepth(true)
 	logs.SetLogFuncCallDepth(3)
 	return nil

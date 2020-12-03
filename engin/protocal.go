@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/astaxie/beego/logs"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -74,8 +75,8 @@ func (acc *HttpAccess)HttpRoundTripper(r *http.Request) (*http.Response, error) 
 	if r.Body != nil {
 		var err error
 		bodyBytes, err = ioutil.ReadAll(r.Body)
-		if err != nil {
-			logs.Error("read all fail, %s", err.Error())
+		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+			logs.Error("http round tripper read fail, %s", err.Error())
 		}
 		atomic.AddUint64(&acc.flowsize, uint64(len(bodyBytes)))
 	}

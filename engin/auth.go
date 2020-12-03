@@ -21,7 +21,7 @@ type AuthCtrl struct {
 var authctrl AuthCtrl
 
 func init()  {
-	authctrl.Cache = make(map[string]AuthItem)
+	authctrl.Cache = make(map[string]AuthItem, 100)
 	go func() {
 		for  {
 			now := time.Now()

@@ -15,7 +15,7 @@ type DomainCtrl struct {
 var forwardCtrl DomainCtrl
 
 func DomainInit(domain []string) {
-	forwardCtrl.cache = make(map[string]string, 2048)
+	forwardCtrl.cache = make(map[string]string, 100)
 	forwardCtrl.domain = domain
 }
 
