@@ -20,49 +20,51 @@
 - 准备指定外部TCP协议访问端口，例如：8080
 
 ### 使用方式：
-
-下载解压相应平台的软件包；其中包括三个文件；一个autoproxy可执行程序，以及两个参考配置文件；server.yaml 和 client.yaml;
-
+下载解压相应平台的软件包；其中包括三个文件；一个autoproxy可执行程序;
 程序命令参数为：
 
 ```
-Usage of autoproxy.exe:
-  -config string
-        configure file (default "config.yaml")
+Usage of ./autoproxy:
   -debug
         enable debug
+  -domain string
+        match domain list file(domain mode requires) (default "domain.json")
   -help
         usage help
+  -local-address string
+        Local proxy listening address (default "http://0.0.0.0:8080")
+  -local-auth string
+        Local proxy auth username and password (default "user:passwd")
+  -logdir string
+        runlog path (default "./")
+  -mode string
+        running mode(local/proxy/domain) (default "proxy")
+  -remote-address string
+        Remote proxy listening address (default "https://you.domain.com:8080")
+  -remote-auth string
+        Remote proxy auth username and password (default "user:passwd")
+  -timeout int
+        connect timeout (unit second) (default 30)
 ```
 
 后台启动参考：
+- 服务部署:
+```
+./autoproxy -local-address https://0.0.0.0:8080 -mode local -local-auth user:123456
+```
 
-`nohup autoproxy -config server.yaml &` 或者 `nohup autoproxy -config client.yaml &`
+- 本地部署:
+```
+./autoproxy -local-auth "" -remote-address https://{remote-ip}:8080 -remote-auth user:123456
+```
 
 #### 1、本地代理模式；
 
 在本地代理下面，只需要部署一个autoproxy程序，这个程序作为内网主机访问外网的代理服务；配置参考如下：
 
 ```
-log:
-  path: ./
-  filesize: 10485760
-  filenumber: 60
-local:
-  listen: 0.0.0.0:8080
-  timeout: 30
-  auth:
-    - username: user1
-      password: uS31k5KLh3NyfvHtFk
-    - username: user2
-      password: c2O9XJGG0bsJLpt6tr
-  mode: local
+./autoproxy -local-address https://0.0.0.0:8080 -mode local -local-auth user:123456
 ```
-
-- log: 表示日志记录的目录、单个文件大小、以及文件数量上限；主要是用于审计和问题定位；
-- local: 表示程序提供的服务配置，包括监听地址和端口，链路超时时间以及认证方式；如果没有配置认证；则不会进行认证；
-- auth: 如果不设置用户名密码，则不进行认证；
-
 
 然后设置浏览器或者环境变量；
 ```
@@ -77,55 +79,19 @@ export https_proxy="http://user1:password1@192.168.3.1:8080"
 ```
 
 #### 2、本地代理+二级代理模式
-
 二级代理就是在本地代理基础之上，将本地代理的部分或者全部流量通过指定二级代理服务进行转发；可用于复杂的网络环境下，部分网站加速；
 
-本地代理配置：参考压缩包的client.yaml配置文件，默认只需要修改指定二级代理IP地址就可以使用了；
+本地代理配置：
 
 ```
-log:
-  path: ./
-  filesize: 10485760
-  filenumber: 60
-local:
-  listen: 0.0.0.0:8080
-  timeout: 5
-  mode: auto
-remote:
-  - address: {二级代理IP}:8080
-    timeout: 30
-    auth:
-      username: user1
-      password: uS31k5KLh3NyfvHtFk
-    tls:
-      enable: true
+./autoproxy -local-auth "" -remote-address https://{remote-ip}:8080 -remote-auth user:123456
 ```
-
-- local: 其中 `mode` 有三个选项，分别是：`local`、`auto`、`proxy` ，其中`local` 表示所有流量通过本地路由处理，不会经过二级代理；`auto` 表示根据IP可达性，比如有些本地路由访问不了或者链路超时，则会使用二级代理进行转发，`proxy` 表示所有流量全部经过二级代理；
-- remote: 需要访问一个或者多个二级代理的地址，超时时间，认证信息；是否进行TLS加密；如果配置多个二级地址，那么会逐个进行链接尝试；
 
 二级代理部署在VPS侧，需要准备具备一个公网IP的虚拟云主机；
 
 ```
-log:
-  path: ./
-  filesize: 10485760
-  filenumber: 60
-local:
-  listen: 0.0.0.0:8080
-  timeout: 30
-  auth:
-    - username: user1
-      password: uS31k5KLh3NyfvHtFk
-    - username: user2
-      password: c2O9XJGG0bsJLpt6tr
-  mode: local
-  tls:
-    enable: true
+./autoproxy -local-address https://0.0.0.0:8080 -mode local -local-auth user:123456
 ```
-
-改配置表示二级代理服务端口、认证信息，是否进行TLS加密；如果未配置TLS加密传输，那么一级代理的remote的TLS配置也需要去掉；否则就会链接失败；
-
 
 #### 3、本地windows UI客户端
 

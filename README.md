@@ -16,7 +16,7 @@ The project provides browser http proxy proxy service, supports https and http p
 
 ## Deploy
 
-### RemoteServer
+### RemoteServer(Not-desktop)
 - Prepare a virtual cloud host with public IP
 - Specify a port for open tcp protocol access, such as 8080
 
@@ -24,36 +24,51 @@ The project provides browser http proxy proxy service, supports https and http p
 
 - Choose the right platform, Download the latest version；such as. `autoproxy_linux_amd64.tar.gz`
 - Run `tar -zxf autoproxy_linux_amd64.tar.gz` Unzip the compressed package.
-- Run `chmod + start.sh;; ./start.sh` Start the remote proxy service. The program will run in the background.
+- Run `nohup xxx &` The program will run in the background.
 
-### Default service configuration
+- Remote Deploy:
+```
+./autoproxy -local-address https://0.0.0.0:8080 -mode local -local-auth user:123456
+```
+
+- Local Deploy:
+```
+./autoproxy -local-auth "" -remote-address https://{remote-ip}:8080 -remote-auth user:123456
+```
+
+### Default configuration
 - The default current path is the log storage path
 - The default bound port 8080
 - TLS transmission encryption is enabled by default
 - Provide two default authentication accounts
 
-
 ```
-log:
-  path: ./
-  filesize: 10485760
-  filenumber: 60
-local:
-  listen: 0.0.0.0:8080
-  timeout: 30
-  auth:
-    - username: user1
-      password: uS31k5KLh3NyfvHtFk
-    - username: user2
-      password: c2O9XJGG0bsJLpt6tr
-  mode: local
-  tls:
-    enable: true
+Usage of ./autoproxy:
+  -debug
+        enable debug
+  -domain string
+        match domain list file(domain mode requires) (default "domain.json")
+  -help
+        usage help
+  -local-address string
+        Local proxy listening address (default "http://0.0.0.0:8080")
+  -local-auth string
+        Local proxy auth username and password (default "user:passwd")
+  -logdir string
+        runlog path (default "./")
+  -mode string
+        running mode(local/proxy/domain) (default "proxy")
+  -remote-address string
+        Remote proxy listening address (default "https://you.domain.com:8080")
+  -remote-auth string
+        Remote proxy auth username and password (default "user:passwd")
+  -timeout int
+        connect timeout (unit second) (default 30)
 ```
 Of course you can modify and run again
 
 ### Download and run the windows client
-- Choose the latest windows client， such as. `autoproxy_win.zip`
+- Choose the latest windows desktop client， such as. `autoproxy_desktop.zip`
 - Unzip and double-click to run
 - Start successfully, you need to manually add remote proxy service.
 
