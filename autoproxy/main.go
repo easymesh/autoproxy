@@ -37,10 +37,10 @@ func init()  {
 	flag.IntVar(&Timeout, "timeout", 30, "connect timeout (unit second)")
 
 	flag.StringVar(&LocalAddr, "local-address", "http://0.0.0.0:8080", "Local proxy listening address")
-	flag.StringVar(&LocalAuth, "local-auth", "user:passwd", "Local proxy auth username and password")
+	flag.StringVar(&LocalAuth, "local-auth", "", "Local proxy auth username and password")
 
 	flag.StringVar(&RemoteAddr, "remote-address", "https://you.domain.com:8080", "Remote proxy listening address")
-	flag.StringVar(&RemoteAuth, "remote-auth", "user:passwd", "Remote proxy auth username and password")
+	flag.StringVar(&RemoteAuth, "remote-auth", "", "Remote proxy auth username and password")
 
 	flag.StringVar(&RunMode,"mode","proxy","running mode(local/proxy/domain)")
 	flag.StringVar(&DomainFile,"domain","domain.json","match domain list file(domain mode requires)")

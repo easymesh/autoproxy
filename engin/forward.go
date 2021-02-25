@@ -44,7 +44,7 @@ func NewDefault(timeout int) (Forward, error) {
 	}
 	forward.Add(1)
 	go func() {
-		ticker := time.NewTicker(time.Minute)
+		ticker := time.NewTicker(5*time.Second)
 		defer ticker.Stop()
 		defer forward.Done()
 		for  {
