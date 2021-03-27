@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/astaxie/beego/logs"
+	"github.com/easymesh/autoproxy"
 	"github.com/lxn/walk"
 	. "github.com/lxn/walk/declarative"
 	"time"
@@ -49,7 +50,7 @@ var protocal  *walk.RadioButton
 func mainWindows() {
 	CapSignal(CloseWindows)
 	cnt, err := MainWindow{
-		Title:   "AutoProxy",
+		Title:   "AutoProxy " + autoproxy.VersionGet(),
 		Icon: ICON_Main,
 		AssignTo: &mainWindow,
 		MinSize: Size{mainWindowWidth, mainWindowHeight},
