@@ -165,18 +165,14 @@ func (acc *HttpAccess)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	origBody := rsp.Body
-	defer origBody.Close()
-
 	copyHeaders(w.Header(), rsp.Header)
 	w.WriteHeader(rsp.StatusCode)
 
-	cnt, err := io.Copy(w, rsp.Body)
+	_, err = io.Copy(w, rsp.Body)
 	if err != nil {
 		logs.Warn("io copy fail", err.Error())
 	}
-
-	atomic.AddUint64(&acc.flowsize, uint64(cnt))
+	rsp.Body.Close()
 }
 
 func copyHeaders(dst, src http.Header) {

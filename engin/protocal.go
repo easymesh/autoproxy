@@ -1,10 +1,8 @@
 package engin
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/astaxie/beego/logs"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -71,16 +69,9 @@ func (acc *HttpAccess)HttpsRoundTripper(w http.ResponseWriter, r *http.Request) 
 }
 
 func (acc *HttpAccess)HttpRoundTripper(r *http.Request) (*http.Response, error) {
-	var bodyBytes []byte
 	if r.Body != nil {
-		var err error
-		bodyBytes, err = ioutil.ReadAll(r.Body)
-		if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
-			logs.Error("http round tripper read fail, %s", err.Error())
-		}
-		atomic.AddUint64(&acc.flowsize, uint64(len(bodyBytes)))
+		r.Body = ioutil.NopCloser(r.Body)
 	}
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
 	return acc.HttpForward(Address(r.URL), r)
 }
 
