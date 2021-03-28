@@ -32,6 +32,7 @@ type HttpAccess struct {
 
 	authHandler func(auth *AuthInfo) bool
 	forwardHandler func(address string, r *http.Request) Forward
+	defaultForward Forward
 }
 
 type Access interface {
@@ -39,14 +40,6 @@ type Access interface {
 	Shutdown() error
 	AuthHandlerSet(func(*AuthInfo) bool)
 	ForwardHandlerSet(func(address string, r *http.Request) Forward)
-}
-
-func NoProxyHandler(w http.ResponseWriter, r *http.Request) {
-	PublicFailDelay()
-	logs.Warn("request is illegal. RemoteAddr: ", r.RemoteAddr)
-	http.Error(w,
-		"This is a proxy server. Does not respond to non-proxy requests.",
-		http.StatusInternalServerError)
 }
 
 func AuthFailHandler(w http.ResponseWriter, r *http.Request)  {
@@ -74,6 +67,13 @@ func AuthInfoParse(r *http.Request) *AuthInfo {
 	return &AuthInfo{User: ctx[0], Token: ctx[1]}
 }
 
+func (acc *HttpAccess)NoProxyHandler(w http.ResponseWriter, r *http.Request) {
+	logs.Warn("request is illegal. RemoteAddr: ", r.RemoteAddr)
+	http.Error(w,
+		"This is a proxy server. Does not respond to non-proxy requests.",
+		http.StatusInternalServerError)
+}
+
 func (acc *HttpAccess)AuthHandlerSet(handler func(auth *AuthInfo) bool)  {
 	acc.authHandler = handler
 }
@@ -94,6 +94,11 @@ func (acc *HttpAccess)AuthHttp(r *http.Request) bool {
 		AuthLogin(r)
 	}
 	return auth
+}
+
+func (acc *HttpAccess)StatAdd(size uint64)  {
+	atomic.AddUint64(&acc.requset, 1)
+	atomic.AddUint64(&acc.flowsize, size)
 }
 
 func (acc *HttpAccess)Stat() (uint64,uint64) {
@@ -125,13 +130,11 @@ func DebugReqeust(r *http.Request) {
 	for key, value := range r.Header {
 		headers += fmt.Sprintf("[%s:%s]",key,value)
 	}
-	logs.Info("%s %s %s %s",r.RemoteAddr, r.Method, r.URL.String(), headers)
+	logs.Info("%s %s %s %s %s %s",r.RemoteAddr, r.Host, r.URL.Scheme, r.Method, r.URL.String(), headers)
 }
 
 func (acc *HttpAccess)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	DebugReqeust(r)
-
-	atomic.AddUint64(&acc.requset, 1)
 
 	if acc.AuthHttp(r) == false {
 		AuthFailHandler(w, r)
@@ -143,14 +146,18 @@ func (acc *HttpAccess)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var rsp *http.Response
+	var err error
+
 	if !r.URL.IsAbs() {
-		NoProxyHandler(w, r)
-		return
+		r.URL.Host = r.Host
+		r.URL.Scheme = "http"
+		rsp, err = acc.defaultForward.Http(r)
+	} else {
+		removeProxyHeaders(r)
+		rsp, err = acc.HttpRoundTripper(r)
 	}
 
-	removeProxyHeaders(r)
-
-	rsp, err := acc.HttpRoundTripper(r)
 	if err != nil {
 		errStr := fmt.Sprintf("transport %s %s failed! %s", r.Host, r.URL.String(), err.Error())
 		logs.Warn(errStr)
@@ -168,11 +175,13 @@ func (acc *HttpAccess)ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	copyHeaders(w.Header(), rsp.Header)
 	w.WriteHeader(rsp.StatusCode)
 
-	_, err = io.Copy(w, rsp.Body)
+	size, err := io.Copy(w, rsp.Body)
 	if err != nil {
 		logs.Warn("io copy fail", err.Error())
 	}
 	rsp.Body.Close()
+
+	acc.StatAdd(uint64(size))
 }
 
 func copyHeaders(dst, src http.Header) {
@@ -210,6 +219,7 @@ func NewHttpsAccess(addr string, timeout int, tlsEnable bool) (Access, error) {
 	acc := new(HttpAccess)
 	acc.Address = addr
 	acc.Timeout = timeout
+	acc.defaultForward, _ = NewDefault(timeout)
 
 	tmout := time.Duration(timeout) * time.Second
 

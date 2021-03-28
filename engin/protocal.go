@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"sync/atomic"
 )
 
 var HTTPS_CLIENT_CONNECT_FLAG  = []byte("HTTP/1.1 200 Connection Established\r\n\r\n")
@@ -63,7 +62,7 @@ func (acc *HttpAccess)HttpsRoundTripper(w http.ResponseWriter, r *http.Request) 
 
 	go func() {
 		ConnectCopyWithTimeout(client, server, 60, func(cnt uint64) {
-			atomic.AddUint64(&acc.flowsize, cnt)
+			acc.StatAdd(cnt)
 		})
 	}()
 }
