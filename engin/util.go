@@ -7,7 +7,6 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -67,7 +66,7 @@ func (c *connectCopy)iocopy(in net.Conn, out net.Conn, statcall func(uint64))  {
 		cnt, err1 = in.Read(buff)
 		if cnt > 0 {
 			statcall(uint64(cnt))
-			atomic.AddUint64(&c.flow, uint64(cnt))
+			c.flow += uint64(cnt)
 			err2 = WriteFull(out, buff[:cnt])
 		}
 		if err1 != nil || err2 != nil {

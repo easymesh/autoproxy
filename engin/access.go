@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -97,8 +96,8 @@ func (acc *HttpAccess)AuthHttp(r *http.Request) bool {
 }
 
 func (acc *HttpAccess)StatAdd(size uint64)  {
-	atomic.AddUint64(&acc.requset, 1)
-	atomic.AddUint64(&acc.flowsize, size)
+	acc.requset++
+	acc.flowsize += size
 }
 
 func (acc *HttpAccess)Stat() (uint64,uint64) {
