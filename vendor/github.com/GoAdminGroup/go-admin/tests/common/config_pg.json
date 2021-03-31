@@ -1,0 +1,26 @@
+{
+  "database": {
+    "default": {
+      "host": "127.0.0.1",
+      "port": "5432",
+      "user": "postgres",
+      "pwd": "root",
+      "name": "go-admin-test",
+      "max_idle_con": 50,
+      "max_open_con": 150,
+      "driver": "postgresql"
+    }
+  },
+  "domain": "localhost",
+  "prefix": "admin",
+  "store": {
+    "path": "./uploads",
+    "prefix": "uploads"
+  },
+  "env": "local",
+  "language": "en",
+  "index": "/",
+  "debug": true,
+  "open_admin_api": true,
+  "color_scheme": "skin-black"
+}
