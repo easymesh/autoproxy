@@ -119,3 +119,6 @@ Support fuzzy matching rules, For example:
 
 ### Wechat Pay 
 ![](./autoproxy_win/static/sponsor2.jpg)
+
+### Thanks Support
+<img src="https://github.com/easymesh/autoproxy/blob/master/docs/jetbrains.png"  title="Logo" width="100" height="100"/>
