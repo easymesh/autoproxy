@@ -134,7 +134,15 @@ type logconfig struct {
 	Color    bool    `json:"color"`
 }
 
-var logCfg = logconfig{Filename: os.Args[0], Level: 7, Daily: true, MaxDays: 30, Color: true}
+var logCfg = logconfig{
+	Filename: os.Args[0],
+	Level: logs.LevelInformational,
+	Daily: true,
+	MaxSize: 10*1024*1024,
+	MaxLines: 100*1024,
+	MaxDays: 7,
+	Color: false,
+}
 
 func LogInit() error {
 	logCfg.Filename = fmt.Sprintf("%s%c%s", logDirGet(), os.PathSeparator, "autoproxy.log")
@@ -146,9 +154,11 @@ func LogInit() error {
 	if err != nil {
 		return err
 	}
+	logs.Async(100)
+	logs.EnableFuncCallDepth(true)
+	logs.SetLogFuncCallDepth(3)
 	return nil
 }
-
 
 func StringDiff(oldlist []string, newlist []string) ([]string, []string) {
 	del := make([]string, 0)
