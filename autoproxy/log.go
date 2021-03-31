@@ -17,7 +17,15 @@ type logconfig struct {
 	Color    bool    `json:"color"`
 }
 
-var logCfg = logconfig{Filename: os.Args[0], Level: logs.LevelInformational, Daily: true, MaxDays: 30, Color: false}
+var logCfg = logconfig{
+	Filename: os.Args[0],
+	Level: logs.LevelInformational,
+	Daily: true,
+	MaxSize: 10*1024*1024,
+	MaxLines: 100*1024,
+	MaxDays: 7,
+	Color: false,
+}
 
 func LogInit(logpath string, debug bool) error {
 	os.MkdirAll(logpath, 0644)
