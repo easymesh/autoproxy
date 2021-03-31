@@ -121,4 +121,6 @@ Support fuzzy matching rules, For example:
 ![](./autoproxy_win/static/sponsor2.jpg)
 
 ### Thanks Support
-<img src="https://github.com/easymesh/autoproxy/blob/master/docs/jetbrains.png"  title="Logo" width="100" height="100"/>
+<a href="https://jb.gg/OpenSource">
+<img src="https://github.com/easymesh/autoproxy/blob/master/docs/jetbrains.png" title="Logo" width="100" height="100"/>
+</a>

@@ -144,3 +144,8 @@ export https_proxy="http://user1:password1@192.168.3.1:8080"
 
 ### Wechat Pay 
 ![](./autoproxy_win/static/sponsor2.jpg)
+
+### 感谢支持
+<a href="https://jb.gg/OpenSource">
+<img src="https://github.com/easymesh/autoproxy/blob/master/docs/jetbrains.png" title="Logo" width="100" height="100"/>
+</a>
