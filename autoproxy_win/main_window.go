@@ -10,12 +10,15 @@ import (
 
 var mainWindow *walk.MainWindow
 
-var mainWindowWidth = 430
-var mainWindowHeight = 350
+var mainWindowWidth = 300
+var mainWindowHeight = 200
 
 func waitWindows()  {
 	for  {
 		if mainWindow != nil && mainWindow.Visible() {
+			mainWindow.SetSize(walk.Size{
+				mainWindowWidth,
+				mainWindowHeight})
 			break
 		}
 		time.Sleep(100*time.Millisecond)
@@ -53,17 +56,14 @@ func mainWindows() {
 		Title:   "AutoProxy " + autoproxy.VersionGet(),
 		Icon: ICON_Main,
 		AssignTo: &mainWindow,
-		MinSize: Size{mainWindowWidth, mainWindowHeight},
-		Size: Size{mainWindowWidth, mainWindowHeight},
+		MinSize: Size{mainWindowWidth, mainWindowHeight-1},
+		Size: Size{mainWindowWidth, mainWindowHeight-1},
 		Layout:  VBox{},
 		MenuItems: MenuBarInit(),
+		StatusBarItems: StatusBarInit(),
 		Children: []Widget{
 			Composite{
-				Layout: Grid{Columns: 3},
-				Children: StatWidget(),
-			},
-			Composite{
-				Layout: Grid{Columns: 2, Margins: Margins{Left: 50}},
+				Layout: Grid{Columns: 2},
 				Children: ConsoleWidget(),
 			},
 			Composite{
