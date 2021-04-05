@@ -1,6 +1,12 @@
 call :build_all windows amd64 .exe
+call :build_all windows 386 .exe
+
 call :build_all darwin amd64
+call :build_all darwin arm64
+
 call :build_all linux amd64
+call :build_all linux 386
+
 call :build_all linux arm
 call :build_all linux arm64
 
