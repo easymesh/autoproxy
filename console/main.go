@@ -1,7 +1,10 @@
 package main
 
 import (
-	"log"
+	"flag"
+	"github.com/astaxie/beego/context"
+	"github.com/GoAdminGroup/go-admin/modules/logger"
+	"net/http"
 	"os"
 	"os/signal"
 
@@ -16,42 +19,93 @@ import (
 
 	"github.com/easymesh/autoproxy/console/models"
 	"github.com/easymesh/autoproxy/console/pages"
-	"github.com/easymesh/autoproxy/console/tables"
 )
 
-func main() {
-	startServer()
+var (
+	Debug   bool
+	Help    bool
+
+	TlsCert    string
+	TlsKey     string
+	TlsEnable  bool
+
+	Port    int
+	Bind    string
+	Config  string
+	Proxy   string
+)
+
+func init()  {
+	flag.BoolVar(&Help, "help", false, "usage help")
+	flag.BoolVar(&Debug, "debug", false, "debug")
+
+	flag.StringVar(&Proxy, "proxy", "./autoproxy", "proxy engin binary file path")
+	flag.StringVar(&Bind, "bind", "0.0.0.0", "bind ip address for console")
+	flag.IntVar(&Port, "port", 8080, "bind port for console")
+	flag.StringVar(&Config, "config", "./config.json", "console config file")
+
+	flag.BoolVar(&TlsEnable, "tls", false, "console with tls")
+	flag.StringVar(&TlsCert, "cert", "", "certificate file")
+	flag.StringVar(&TlsKey, "key", "", "private key file name")
 }
 
-func startServer() {
+func ProccessExit(eng *engine.Engine)  {
+	eng.SqliteConnection().Close()
+
+	logger.Info("console shutdown")
+}
+
+func main() {
 	app := beego.NewApp()
 
 	template.AddComp(chartjs.NewChart())
 
-	eng := engine.Default()
-
 	beego.SetStaticPath("/uploads", "uploads")
 
-	if err := eng.AddConfigFromJSON("./config.json").
-		AddGenerators(tables.Generators).
-		Use(app); err != nil {
+	eng := engine.Default()
+	eng.AddConfigFromJSON(Config)
+
+	eng.AddGenerator("users", pages.UserTableGet)
+	eng.AddGenerator("domains", pages.DomainTableGet)
+	eng.AddGenerator("remotes", pages.RemoteTableGet)
+	eng.AddGenerator("proxys", pages.ProxyTableGet)
+
+	if err := eng.Use(app); err != nil {
+		logger.Error(err.Error())
 		panic(err)
 	}
 
-	eng.HTML("GET", "/admin", pages.GetDashBoard)
-	eng.HTMLFile("GET", "/admin/hello", "./html/hello.tmpl", map[string]interface{}{
-		"msg": "Hello world",
+	//eng.HTML("GET", "/admin/status", pages.CloudSystemInfo)
+	//eng.HTML("GET", "/admin/engin",  pages.CloudEnginTableContent)
+	eng.HTML("GET", "/admin/", pages.GetDashBoard)
+
+	app.Handlers.Any("/", func(ctx *context.Context) {
+		ctx.Redirect(http.StatusFound,"/admin")
 	})
 
 	models.Init(eng.SqliteConnection())
 
-	beego.BConfig.Listen.HTTPAddr = "127.0.0.1"
-	beego.BConfig.Listen.HTTPPort = 80
-	go app.Run()
+	if TlsEnable {
+		beego.BConfig.Listen.EnableHTTP  = false
+		beego.BConfig.Listen.EnableHTTPS = true
+		beego.BConfig.Listen.HTTPSAddr   = Bind
+		beego.BConfig.Listen.HTTPSPort   = Port
+		beego.BConfig.Listen.HTTPSCertFile = TlsCert
+		beego.BConfig.Listen.HTTPSKeyFile  = TlsKey
+	} else {
+		beego.BConfig.Listen.HTTPAddr = Bind
+		beego.BConfig.Listen.HTTPPort = Port
+	}
+
+	go func() {
+		app.Run()
+		logger.Info("beego service shutdown")
+		ProccessExit(eng)
+	}()
 
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
+	signal.Notify(quit, os.Interrupt, os.Kill)
 	<-quit
-	log.Print("closing database connection")
-	eng.SqliteConnection().Close()
+
+	ProccessExit(eng)
 }

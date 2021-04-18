@@ -20,9 +20,9 @@
 	"login_url": "/login",
 	"debug": true,
 	"env": "local",
-	"info_log": "D:/golang/src/github.com/easymesh/autoproxy/console/logs/info.log",
-	"error_log": "D:/golang/src/github.com/easymesh/autoproxy/console/logs/error.log",
-	"access_log": "D:/golang/src/github.com/easymesh/autoproxy/console/logs/access.log",
+	"info_log": "./logs/info.log",
+	"error_log": "./logs/error.log",
+	"access_log": "./logs/access.log",
 	"color_scheme": "skin-black",
 	"session_life_time": 7200,
 	"file_upload_engine": {
