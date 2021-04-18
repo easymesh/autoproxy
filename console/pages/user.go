@@ -10,7 +10,6 @@ import (
 	"github.com/GoAdminGroup/go-admin/template/types"
 	"github.com/GoAdminGroup/go-admin/template/types/form"
 	editType "github.com/GoAdminGroup/go-admin/template/types/table"
-	util "github.com/easymesh/autoproxy/console/uitl"
 )
 
 func UserTableGet(ctx *context.Context) (table.Table) {
@@ -18,7 +17,8 @@ func UserTableGet(ctx *context.Context) (table.Table) {
 
 	info := profile.GetInfo().HideFilterArea().HideExportButton().HideFilterButton().HideRowSelector().HideQueryInfo()
 	info.AddField("ID", "id", db.Int).FieldFilterable()
-	info.AddField("User", "user", db.Varchar).FieldFilterable()
+	info.AddField("User", "user", db.Varchar)
+	info.AddField("Password", "password", db.Varchar)
 	info.AddField("Enable", "enable", db.Integer).FieldDisplay(func(model types.FieldModel) interface{} {
 		return model.Value
 	}).FieldEditAble(editType.Switch).FieldEditOptions(types.FieldOptions{
@@ -60,11 +60,8 @@ func UserTableGet(ctx *context.Context) (table.Table) {
 				logger.Error("password is null", value.Value.Value())
 				return ""
 			}
-			return util.CryptPassword(value.Value.Value())
-		}).FieldDefault("").FieldValue("").
-		FieldDisplay(func(value types.FieldModel) interface{} {
-			return ""
-		})
+			return value.Value.Value()
+		}).FieldDefault("").FieldValue("")
 	addFrom.AddField("Enable", "enable", db.Tinyint, form.Number).FieldDefault("1").FieldHide()
 	addFrom.AddField("Flow", "flow", db.Tinyint, form.Number).FieldDefault("0").FieldHide()
 	addFrom.AddField("Online", "online", db.Tinyint, form.Number).FieldDefault("0").FieldHide()
@@ -87,3 +84,4 @@ func UserTableGet(ctx *context.Context) (table.Table) {
 	addFrom.SetTable("users").SetTitle("User").SetDescription("edit user account")
 	return profile
 }
+

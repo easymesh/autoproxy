@@ -10,6 +10,7 @@ import (
 	"github.com/GoAdminGroup/go-admin/template/types"
 	"github.com/GoAdminGroup/go-admin/template/types/form"
 	editType "github.com/GoAdminGroup/go-admin/template/types/table"
+	"github.com/easymesh/autoproxy/console/models"
 	"github.com/easymesh/autoproxy/console/uitl"
 )
 
@@ -43,6 +44,18 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		{Value: "1", Text: "1"},
 		{Value: "0", Text: "0"},
 	})
+
+	info.AddField("Status", "status", db.Varchar).
+		FieldDisplay(func(value types.FieldModel) interface{} {
+			if value.Value == "" {
+				return "unkown"
+			}
+			return value.Value
+		}).
+		FieldDot(map[string]types.FieldDotColor{
+			"connected": types.FieldDotColorInfo,
+			"unkown": types.FieldDotColorDanger,
+		}, types.FieldDotColorDanger)
 
 	info.SetTable("proxys").SetTitle("Proxy Server Config").SetDescription("edit proxy servers config")
 
@@ -98,7 +111,12 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		FieldOptions(modeOptions).FieldRowWidth(2)
 
 	var remoteOptions types.FieldOptions
-	
+	remotes := models.RemoteGet()
+	for _, v := range remotes {
+		remoteOptions = append(remoteOptions, types.FieldOption{
+			Text: v.Tag, Value: v.Tag,
+		})
+	}
 	addFrom.AddField("Remote", "remote", db.Varchar, form.SelectSingle).
 		FieldOptions(remoteOptions).FieldRowWidth(2)
 
@@ -110,6 +128,19 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 			}
 			return nil
 		}
+		if len(values.Get("tag")) < 3 {
+			return fmt.Errorf("tag should more than 3 characters")
+		}
+		remote := values.Get("remote")
+		if remote == "" && models.RemoteFind(remote) == nil {
+			return fmt.Errorf("remote server config not exist", remote)
+		}
+		port := util.Atoi(values.Get("port"))
+		if port < 1 || port > 65535 {
+			return fmt.Errorf("port %d is illegal", port)
+		}
+
+
 		//if len(values.Get("address")) < 3 {
 		//	return fmt.Errorf("tag should more than 3 characters")
 		//}
