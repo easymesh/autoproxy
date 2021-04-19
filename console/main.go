@@ -54,6 +54,7 @@ func ProccessExit(eng *engine.Engine)  {
 	eng.SqliteConnection().Close()
 	pages.EnginFini()
 	logger.Info("console shutdown")
+	os.Exit(-1)
 }
 
 func main() {
