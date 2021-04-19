@@ -2,7 +2,7 @@
 	"database": {
 		"default": {
 			"driver": "sqlite",
-			"file": "./admin.db"
+			"file": "./release.db"
 		}
 	},
 	"app_id": "3fC10YiAh3CDriver",

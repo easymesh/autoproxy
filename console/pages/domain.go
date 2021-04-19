@@ -10,7 +10,13 @@ import (
 	"github.com/GoAdminGroup/go-admin/template/types"
 	"github.com/GoAdminGroup/go-admin/template/types/form"
 	editType "github.com/GoAdminGroup/go-admin/template/types/table"
+	"github.com/astaxie/beego/logs"
+	"github.com/easymesh/autoproxy/console/models"
+	"strings"
+	"sync"
+	"time"
 )
+
 
 func DomainTableGet(ctx *context.Context) (table.Table) {
 	profile := table.NewDefaultTable(table.DefaultConfigWithDriver("sqlite"))
@@ -63,6 +69,111 @@ func DomainTableGet(ctx *context.Context) (table.Table) {
 		}
 		return nil
 	})
+	addFrom.SetPostHook(func(values form2.Values) error {
+		go func() {
+			time.Sleep(time.Second)
+			DomainInit()
+		}()
+		return nil
+	})
 	addFrom.SetTable("domains").SetTitle("Domain").SetDescription("edit proxy domain table")
 	return profile
+}
+
+type DomainCtrl struct {
+	sync.RWMutex
+	cache  map[string]string
+	domain []string
+}
+
+var forwardCtrl DomainCtrl
+
+func DomainInit() {
+	var domainList []string
+
+	domains := models.DomainGet()
+	for _, v := range domains {
+		if v.Enable == 0 {
+			continue
+		}
+		domainList = append(domainList, strings.Split(v.Domains, ";")...)
+	}
+
+	forwardCtrl.Lock()
+	forwardCtrl.cache  = make(map[string]string, 1024)
+	forwardCtrl.domain = domainList
+	forwardCtrl.Unlock()
+
+	logger.Info("domain cache reset success")
+}
+
+func domainGet(address string) string {
+	domain := address
+	idx := strings.Index(address, ":")
+	if idx != -1 {
+		domain = address[:idx]
+	}
+	return domain
+}
+
+func domainMatch(domain string, match string) bool {
+	begin := strings.Index(match, "*")
+	end := strings.Index(match[begin+1:], "*")
+	if end != -1 {
+		end += begin+1
+	}
+	if begin != -1 && end == -1 {
+		// suffix match
+		return strings.HasSuffix(domain, match[begin+1:])
+	}
+	if begin == -1 && end != -1 {
+		// prefix match
+		return strings.HasPrefix(domain, match[:end])
+	}
+	if begin == -1 && end == -1 {
+		// full match
+		if domain == match {
+			return true
+		} else {
+			return false
+		}
+	}
+	idx := strings.Index(domain, match[begin+1: end])
+	if idx == -1 {
+		return false
+	}
+	return true
+}
+
+// address: www.baidu.com:80 or www.baidu.com:443
+func routeMatch(address string) string {
+	domain := domainGet(address)
+	for _, v := range forwardCtrl.domain {
+		if domainMatch(domain, v) {
+			forwardCtrl.cache[address] = v
+			logs.Info("route address %s match to domain %s", address, v)
+			return v
+		}
+	}
+	logs.Info("route address %s no match", address)
+	forwardCtrl.cache[address] = ""
+	return ""
+}
+
+func DomainCheck(address string) bool {
+	forwardCtrl.RLock()
+	result, flag := forwardCtrl.cache[address]
+	forwardCtrl.RUnlock()
+
+	if flag == false {
+		forwardCtrl.Lock()
+		result = routeMatch(address)
+		forwardCtrl.Unlock()
+	}
+
+	if result == "" {
+		return false
+	}
+
+	return true
 }

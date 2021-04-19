@@ -1,5 +1,5 @@
 package autoproxy
 
 func VersionGet() string {
-	return "v1.2.8"
+	return "v1.3.0"
 }

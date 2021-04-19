@@ -7,15 +7,84 @@ import (
 	"github.com/GoAdminGroup/go-admin/modules/logger"
 	form2 "github.com/GoAdminGroup/go-admin/plugins/admin/modules/form"
 	"github.com/GoAdminGroup/go-admin/plugins/admin/modules/table"
+	"github.com/GoAdminGroup/go-admin/template/icon"
 	"github.com/GoAdminGroup/go-admin/template/types"
+	"github.com/GoAdminGroup/go-admin/template/types/action"
 	"github.com/GoAdminGroup/go-admin/template/types/form"
 	editType "github.com/GoAdminGroup/go-admin/template/types/table"
 	"github.com/easymesh/autoproxy/console/models"
 	"github.com/easymesh/autoproxy/console/uitl"
+	"strings"
+	"sync"
+	"time"
 )
+
+const (
+	OPERATION_START   = "op_start"
+	OPERATION_STOP    = "op_stop"
+	OPERATION_RESTART = "op_restart"
+)
+
+func operationGet(path string) string {
+	if strings.LastIndex(path, OPERATION_START) != -1 {
+		return OPERATION_START
+	}
+	if strings.LastIndex(path, OPERATION_STOP) != -1 {
+		return OPERATION_STOP
+	}
+	if strings.LastIndex(path, OPERATION_RESTART) != -1 {
+		return OPERATION_RESTART
+	}
+	return ""
+}
+
+func enginProcess(ctx *context.Context) (success bool, msg string, data interface{}) {
+	ids := strings.Split(ctx.FormValue("ids"), ",")
+	var proxys []*models.Proxy
+	for _, v := range ids {
+		if add := models.ProxyFindByID(v) ; add != nil {
+			proxys = append(proxys, add)
+		}
+	}
+	if len(proxys) == 0 {
+		return false, "no object selected", nil
+	}
+	opt := operationGet(ctx.Path())
+	if opt == "" {
+		return false, "not support operation", nil
+	}
+
+	var err error
+	for _, v := range proxys {
+		logger.Infof("start proxy %s operation %s", v.Tag, opt)
+		switch opt {
+			case OPERATION_START: {
+				err = EnginStart(v.Tag)
+			}
+			case OPERATION_STOP: {
+				err = EnginStop(v.Tag)
+			}
+			case OPERATION_RESTART: {
+				EnginStop(v.Tag)
+				err = EnginStart(v.Tag)
+			}
+		}
+
+		if err != nil {
+			logger.Errorf("proxy %s operation %s fail, %s", v.Tag, opt, err.Error())
+			return false, "operation fail, " + err.Error(), nil
+		}
+	}
+
+	return true, "operation success", nil
+}
 
 func ProxyTableGet(ctx *context.Context) (table.Table) {
 	profile := table.NewDefaultTable(table.DefaultConfigWithDriver("sqlite"))
+
+	profile.GetInfo().AddButton("Restart", icon.Refresh, action.Ajax(OPERATION_RESTART, enginProcess))
+	profile.GetInfo().AddButton("Stop", icon.Pause, action.Ajax(OPERATION_STOP, enginProcess))
+	profile.GetInfo().AddButton("Start", icon.Play, action.Ajax(OPERATION_START, enginProcess))
 
 	info := profile.GetInfo().HideFilterArea().HideExportButton().HideFilterButton().HideRowSelector().HideQueryInfo()
 	info.AddField("ID", "id", db.Int).FieldFilterable()
@@ -30,11 +99,6 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		{Value: "1", Text: "1"},
 		{Value: "0", Text: "0"},
 	})
-
-	info.AddField("Iface", "interface", db.Varchar)
-	info.AddField("Port", "port", db.Integer)
-	info.AddField("Protocal", "protocal", db.Varchar).FieldFilterable()
-
 	info.AddField("Auth", "auth", db.Integer).FieldDisplay(func(model types.FieldModel) interface{} {
 		return model.Value
 	}).FieldEditAble(editType.Switch).FieldEditOptions(types.FieldOptions{
@@ -45,16 +109,22 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		{Value: "0", Text: "0"},
 	})
 
+	info.AddField("Iface", "interface", db.Varchar)
+	info.AddField("Port", "port", db.Integer)
+	info.AddField("Protocal", "protocal", db.Varchar)
+	info.AddField("Mode", "mode", db.Varchar)
+	info.AddField("Remote", "remote", db.Varchar)
+
 	info.AddField("Status", "status", db.Varchar).
 		FieldDisplay(func(value types.FieldModel) interface{} {
 			if value.Value == "" {
-				return "unkown"
+				return "stoped"
 			}
 			return value.Value
 		}).
 		FieldDot(map[string]types.FieldDotColor{
-			"connected": types.FieldDotColorInfo,
-			"unkown": types.FieldDotColorDanger,
+			"running": types.FieldDotColorInfo,
+			"stoped": types.FieldDotColorDanger,
 		}, types.FieldDotColorDanger)
 
 	info.SetTable("proxys").SetTitle("Proxy Server Config").SetDescription("edit proxy servers config")
@@ -103,9 +173,9 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		}).FieldDefault("0")
 
 	var modeOptions types.FieldOptions = []types.FieldOption {
-		{Text: "Local", Value: "local",},
-		{Text: "Remote", Value: "remote",},
-		{Text: "Domain", Value: "domain",},
+		{Text: "Local", Value: models.MODE_LOCAL,},
+		{Text: "Remote", Value: models.MODE_REMOTE,},
+		{Text: "Domain", Value: models.MODE_DOMAIN,},
 	}
 	addFrom.AddField("Mode", "mode", db.Varchar, form.SelectSingle).
 		FieldOptions(modeOptions).FieldRowWidth(2)
@@ -121,37 +191,164 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		FieldOptions(remoteOptions).FieldRowWidth(2)
 
 	addFrom.AddField("Enable", "enable", db.Tinyint, form.Number).FieldDefault("1").FieldHide()
+	addFrom.AddField("Status", "status", db.Varchar, form.Text).FieldDefault("stoped").FieldHide()
+
 	addFrom.SetPostValidator(func(values form2.Values) error {
 		if values.IsSingleUpdatePost() {
-			if !values.Has("enable") {
-				return fmt.Errorf("account single only enable update")
+			proxy := models.ProxyFindByID(values.Get("id"))
+			if proxy == nil {
+				return fmt.Errorf("proxy id %s not exist", values.Get("id"))
 			}
-			return nil
+			if values.Has("enable") {
+				return nil
+			}
+			if values.Has("auth") {
+				EnginAuth(proxy.Tag, util.Atoi(values.Get("auth")))
+				return nil
+			}
+			return fmt.Errorf("post single only enable / auth update")
 		}
+
 		if len(values.Get("tag")) < 3 {
 			return fmt.Errorf("tag should more than 3 characters")
 		}
-		remote := values.Get("remote")
-		if remote == "" && models.RemoteFind(remote) == nil {
-			return fmt.Errorf("remote server config not exist", remote)
+
+		if values.Get("mode") != models.MODE_LOCAL {
+			remote := values.Get("remote")
+			if remote == "" && models.RemoteFind(remote) == nil {
+				return fmt.Errorf("remote %s server config not exist", remote)
+			}
 		}
+
 		port := util.Atoi(values.Get("port"))
 		if port < 1 || port > 65535 {
 			return fmt.Errorf("port %d is illegal", port)
 		}
 
+		go func() {
+			time.Sleep(time.Second)
+			
+			EnginStop(values.Get("tag"))
+			EnginStart(values.Get("tag"))
+		}()
 
-		//if len(values.Get("address")) < 3 {
-		//	return fmt.Errorf("tag should more than 3 characters")
-		//}
-		//if len(values.Get("domains")) < 1 {
-		//	return fmt.Errorf("domains should more than 1 characters")
-		//}
 		return nil
 	})
 
 
 
+	//addFrom.SetUpdateFn(func(values form2.Values) error {
+	//	logger.Info(values.IsUpdatePost())
+	//	return nil
+	//})
+
 	addFrom.SetTable("proxys").SetTitle("Proxy Server Config").SetDescription("edit proxy servers config")
 	return profile
+}
+
+type MultiProxyCtrl struct {
+	engin map[string] *ProxyEngin
+	sync.RWMutex
+}
+
+var multiProxy MultiProxyCtrl
+
+func EnginInit() {
+	multiProxy.engin = make(map[string] *ProxyEngin, 100)
+	proxys := models.ProxyGet()
+	for _, v := range proxys {
+		if 0 == v.Enable {
+			continue
+		}
+		err := EnginStart(v.Tag)
+		if err != nil {
+			logger.Errorf("proxy %s start fail, %s", v.Tag, err.Error())
+		} else {
+			logger.Infof("proxy %s start success", v.Tag)
+		}
+	}
+}
+
+func EnginFini()  {
+	multiProxy.Lock()
+	defer multiProxy.Unlock()
+
+	for _, v := range multiProxy.engin {
+		v.Stop()
+	}
+}
+
+func EnginStart(tag string) error {
+	multiProxy.Lock()
+	defer multiProxy.Unlock()
+
+	var err error
+
+	engin, _ := multiProxy.engin[tag]
+	if engin != nil {
+		return fmt.Errorf("proxy %s engin running", tag)
+	}
+
+	proxy := models.ProxyFind(tag)
+	if proxy == nil {
+		return fmt.Errorf("proxy %s not exist", tag)
+	}
+
+	var remote *models.Remote
+	if proxy.Mode != models.MODE_LOCAL {
+		remote = models.RemoteFind(proxy.Remote)
+		if remote == nil {
+			errs := fmt.Sprintf("remote %s not exist", proxy.Remote)
+			models.ProxyUpdate(proxy.Tag, func(u *models.Proxy) {
+				u.Status = errs
+			})
+			return fmt.Errorf(errs)
+		}
+	}
+
+	engin, err = NewProxyEngin(proxy, remote)
+	if err != nil {
+		models.ProxyUpdate(proxy.Tag, func(u *models.Proxy) {
+			u.Status = err.Error()
+		})
+		return err
+	}
+
+	models.ProxyUpdate(proxy.Tag, func(u *models.Proxy) {
+		u.Status = "running"
+	})
+
+	multiProxy.engin[tag] = engin
+	return nil
+}
+
+func EnginAuth(tag string, auth int) error {
+	multiProxy.Lock()
+	defer multiProxy.Unlock()
+
+	engin, _ := multiProxy.engin[tag]
+	if engin == nil {
+		return fmt.Errorf("proxy %s engin stoped", tag)
+	}
+
+	engin.AuthSwitch(auth)
+	return nil
+}
+
+func EnginStop(tag string) error {
+	multiProxy.Lock()
+	defer multiProxy.Unlock()
+
+	engin, _ := multiProxy.engin[tag]
+	if engin == nil {
+		return fmt.Errorf("proxy %s engin stoped", tag)
+	}
+
+	models.ProxyUpdate(tag, func(u *models.Proxy) {
+		u.Status = "stoped"
+	})
+
+	engin.Stop()
+	delete(multiProxy.engin, tag)
+	return nil
 }

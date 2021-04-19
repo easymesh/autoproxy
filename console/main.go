@@ -4,6 +4,7 @@ import (
 	"flag"
 	"github.com/astaxie/beego/context"
 	"github.com/GoAdminGroup/go-admin/modules/logger"
+	"github.com/easymesh/autoproxy"
 	"net/http"
 	"os"
 	"os/signal"
@@ -51,11 +52,17 @@ func init()  {
 
 func ProccessExit(eng *engine.Engine)  {
 	eng.SqliteConnection().Close()
-
+	pages.EnginFini()
 	logger.Info("console shutdown")
 }
 
 func main() {
+	flag.Parse()
+	if Help {
+		flag.Usage()
+		return
+	}
+
 	app := beego.NewApp()
 
 	template.AddComp(chartjs.NewChart())
@@ -74,9 +81,6 @@ func main() {
 		logger.Error(err.Error())
 		panic(err)
 	}
-
-	//eng.HTML("GET", "/admin/status", pages.CloudSystemInfo)
-	//eng.HTML("GET", "/admin/engin",  pages.CloudEnginTableContent)
 	eng.HTML("GET", "/admin/", pages.GetDashBoard)
 
 	app.Handlers.Any("/", func(ctx *context.Context) {
@@ -99,9 +103,14 @@ func main() {
 
 	go func() {
 		app.Run()
-		logger.Info("beego service shutdown")
+		logger.Info("proxy service shutdown")
 		ProccessExit(eng)
 	}()
+
+	pages.DomainInit()
+	pages.EnginInit()
+
+	logger.Infof("proxy server %s start success", autoproxy.VersionGet())
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, os.Kill)

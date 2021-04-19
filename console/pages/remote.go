@@ -131,6 +131,10 @@ func RemoteTableGet(ctx *context.Context) (table.Table) {
 		}
 		return nil
 	})
+	addFrom.SetPostHook(func(values form2.Values) error {
+		logger.Infof("post %s", values)
+		return nil
+	})
 	addFrom.SetTable("remotes").SetTitle("Remote Server Config").SetDescription("edit remote servers config")
 	return profile
 }

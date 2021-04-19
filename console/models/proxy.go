@@ -2,6 +2,12 @@ package models
 
 import "fmt"
 
+const (
+	MODE_LOCAL  = "local"
+	MODE_REMOTE = "remote"
+	MODE_DOMAIN = "domain"
+)
+
 type Proxy struct {
 	ID        int       `gorm:"column:id"`
 	Tag       string    `gorm:"column:tag"`
@@ -27,6 +33,16 @@ func ProxyFind(tag string) *Proxy {
 	return &out
 }
 
+func ProxyFindByID(id string) *Proxy {
+	var out Proxy
+	db := orm.Table(PROXY_TABLE_NAME)
+	db.Where("id = ?", id).First(&out)
+	if out.ID == 0 {
+		return nil
+	}
+	return &out
+}
+
 func ProxyGet() []Proxy {
 	var out []Proxy
 	db := orm.Table(PROXY_TABLE_NAME)
@@ -36,7 +52,7 @@ func ProxyGet() []Proxy {
 
 func ProxyUpdate(tag string, update func(u *Proxy) ) error {
 	var info Proxy
-	db := orm.Table(USER_TABLE_NAME)
+	db := orm.Table(PROXY_TABLE_NAME)
 	db.Where("tag = ?", tag).First(&info)
 	if info.ID == 0 {
 		return fmt.Errorf("%s not exist", tag)

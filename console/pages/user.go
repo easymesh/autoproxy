@@ -28,20 +28,20 @@ func UserTableGet(ctx *context.Context) (table.Table) {
 		{Value: "1", Text: "1"},
 		{Value: "0", Text: "0"},
 	})
-	info.AddField("Flow", "flow", db.Integer).FieldDisplay(func(value types.FieldModel) interface{} {
-		return fmt.Sprintf("%sGB", value.Value)
-	})
-	info.AddField("Online", "online", db.Varchar).
-		FieldDisplay(func(value types.FieldModel) interface{} {
-			if value.Value == "1" {
-				return "online"
-			}
-			return "offline"
-		}).
-		FieldDot(map[string]types.FieldDotColor{
-			"offline": types.FieldDotColorDanger,
-			"online": types.FieldDotColorInfo,
-		}, types.FieldDotColorDanger)
+	//info.AddField("Flow", "flow", db.Integer).FieldDisplay(func(value types.FieldModel) interface{} {
+	//	return fmt.Sprintf("%sGB", value.Value)
+	//})
+	//info.AddField("Online", "online", db.Varchar).
+	//	FieldDisplay(func(value types.FieldModel) interface{} {
+	//		if value.Value == "1" {
+	//			return "online"
+	//		}
+	//		return "offline"
+	//	}).
+	//	FieldDot(map[string]types.FieldDotColor{
+	//		"offline": types.FieldDotColorDanger,
+	//		"online": types.FieldDotColorInfo,
+	//	}, types.FieldDotColorDanger)
 
 	info.SetTable("users").SetTitle("User").SetDescription("edit user account")
 
