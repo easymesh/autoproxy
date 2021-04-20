@@ -88,7 +88,7 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 
 	info := profile.GetInfo().HideFilterArea().HideExportButton().HideFilterButton().HideRowSelector().HideQueryInfo()
 	info.AddField("ID", "id", db.Int).FieldFilterable()
-	info.AddField("Tag", "tag", db.Varchar)
+	info.AddField("Tag", "tag", db.Varchar).FieldFixed()
 
 	info.AddField("Enable", "enable", db.Integer).FieldDisplay(func(model types.FieldModel) interface{} {
 		return model.Value

@@ -31,18 +31,14 @@ var (
 	TlsEnable  bool
 
 	Port    int
-	Bind    string
 	Config  string
-	Proxy   string
 )
 
 func init()  {
 	flag.BoolVar(&Help, "help", false, "usage help")
 	flag.BoolVar(&Debug, "debug", false, "debug")
 
-	flag.StringVar(&Proxy, "proxy", "./autoproxy", "proxy engin binary file path")
-	flag.StringVar(&Bind, "bind", "0.0.0.0", "bind ip address for console")
-	flag.IntVar(&Port, "port", 8080, "bind port for console")
+	flag.IntVar(&Port, "port", 8000, "bind port for console")
 	flag.StringVar(&Config, "config", "./config.json", "console config file")
 
 	flag.BoolVar(&TlsEnable, "tls", false, "console with tls")
@@ -93,12 +89,12 @@ func main() {
 	if TlsEnable {
 		beego.BConfig.Listen.EnableHTTP  = false
 		beego.BConfig.Listen.EnableHTTPS = true
-		beego.BConfig.Listen.HTTPSAddr   = Bind
+		beego.BConfig.Listen.HTTPSAddr   = "0.0.0.0"
 		beego.BConfig.Listen.HTTPSPort   = Port
 		beego.BConfig.Listen.HTTPSCertFile = TlsCert
 		beego.BConfig.Listen.HTTPSKeyFile  = TlsKey
 	} else {
-		beego.BConfig.Listen.HTTPAddr = Bind
+		beego.BConfig.Listen.HTTPAddr = "0.0.0.0"
 		beego.BConfig.Listen.HTTPPort = Port
 	}
 
