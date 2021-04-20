@@ -226,21 +226,15 @@ func ProxyTableGet(ctx *context.Context) (table.Table) {
 		}
 
 		go func() {
+			tag := values.Get("tag")
 			time.Sleep(time.Second)
-			
-			EnginStop(values.Get("tag"))
-			EnginStart(values.Get("tag"))
+
+			EnginStop(tag)
+			EnginStart(tag)
 		}()
 
 		return nil
 	})
-
-
-
-	//addFrom.SetUpdateFn(func(values form2.Values) error {
-	//	logger.Info(values.IsUpdatePost())
-	//	return nil
-	//})
 
 	addFrom.SetTable("proxys").SetTitle("Proxy Server Config").SetDescription("edit proxy servers config")
 	return profile
@@ -267,6 +261,9 @@ func EnginInit() {
 			logger.Infof("proxy %s start success", v.Tag)
 		}
 	}
+
+	go deleteSync()
+	go statusSync()
 }
 
 func EnginFini()  {
@@ -339,16 +336,48 @@ func EnginStop(tag string) error {
 	multiProxy.Lock()
 	defer multiProxy.Unlock()
 
+	models.ProxyUpdate(tag, func(u *models.Proxy) {
+		u.Status = "stoped"
+	})
+
 	engin, _ := multiProxy.engin[tag]
 	if engin == nil {
 		return fmt.Errorf("proxy %s engin stoped", tag)
 	}
 
-	models.ProxyUpdate(tag, func(u *models.Proxy) {
-		u.Status = "stoped"
-	})
-
 	engin.Stop()
 	delete(multiProxy.engin, tag)
 	return nil
+}
+
+func deleteSync()  {
+	for  {
+		time.Sleep(time.Second * 3)
+
+		multiProxy.Lock()
+		for _, v := range multiProxy.engin {
+			if models.ProxyFind(v.proxy.Tag) != nil {
+				continue
+			}
+			logger.Warnf("engin %s has beed delete", v.proxy.Tag)
+			v.Stop()
+			delete(multiProxy.engin, v.proxy.Tag)
+		}
+		multiProxy.Unlock()
+	}
+}
+
+func statusSync()  {
+	for  {
+		time.Sleep(time.Second * 5)
+
+		proxys := models.ProxyGet()
+		for _, v := range proxys {
+			if v.Enable == 0 {
+				EnginStop(v.Tag)
+			} else {
+				EnginStart(v.Tag)
+			}
+		}
+	}
 }

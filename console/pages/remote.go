@@ -126,13 +126,9 @@ func RemoteTableGet(ctx *context.Context) (table.Table) {
 		auth := util.Atoi(values.Get("auth"))
 		if auth == 1 {
 			if len(values.Get("user")) < 1 || len(values.Get("password")) < 1 {
-				return fmt.Errorf("user/password should config")
+				return fmt.Errorf("user or password need config")
 			}
 		}
-		return nil
-	})
-	addFrom.SetPostHook(func(values form2.Values) error {
-		logger.Infof("post %s", values)
 		return nil
 	})
 	addFrom.SetTable("remotes").SetTitle("Remote Server Config").SetDescription("edit remote servers config")

@@ -78,7 +78,10 @@ func main() {
 		logger.Error(err.Error())
 		panic(err)
 	}
-	eng.HTML("GET", "/admin/", pages.GetDashBoard)
+	//eng.HTML("GET", "/admin/", pages.GetDashBoard)
+	app.Handlers.Any("/admin/", func(ctx *context.Context) {
+		ctx.Redirect(http.StatusFound,"/admin/info/proxys")
+	})
 
 	app.Handlers.Any("/", func(ctx *context.Context) {
 		ctx.Redirect(http.StatusFound,"/admin")
