@@ -352,7 +352,7 @@ func EnginStop(tag string) error {
 
 func deleteSync()  {
 	for  {
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second)
 
 		multiProxy.Lock()
 		for _, v := range multiProxy.engin {
@@ -369,7 +369,7 @@ func deleteSync()  {
 
 func statusSync()  {
 	for  {
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second)
 
 		proxys := models.ProxyGet()
 		for _, v := range proxys {
