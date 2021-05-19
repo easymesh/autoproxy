@@ -1,7 +1,7 @@
 FROM ubuntu:20.04
 MAINTAINER lixiangyun linimbus@126.com
 
-CMD apt update && apt install golang gcc -y
+RUN apt update && apt install golang gcc -y
 
 WORKDIR /gopath/
 ENV GOPATH=/gopath/
