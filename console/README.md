@@ -2,7 +2,7 @@
 
 ### under docker
 ```
-docker run -d --net=host easymesh/proxyweb
+docker run -d --net=host --restart=always easymesh/proxyweb
 ```
 
 ### Access via browser
