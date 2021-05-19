@@ -1,6 +1,6 @@
 ## ProxyWeb
 
-### run by docker
+### under docker
 ```
 docker run -d --net=host easymesh/proxyweb
 ```
