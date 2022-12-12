@@ -25,26 +25,28 @@
 
 ```
 Usage of ./autoproxy:
-  -debug
-        enable debug
+  -cert-file string
+    	tls cert file pem format
   -domain string
-        match domain list file(domain mode requires) (default "domain.json")
+    	match domain list file(domain mode requires) (default "domain.json")
   -help
-        usage help
+    	usage help
+  -key-file string
+    	tls key file pem format
   -local-address string
-        Local proxy listening address (default "http://0.0.0.0:8080")
+    	Local proxy listening address (default "http://0.0.0.0:8080")
   -local-auth string
-        Local proxy auth username and password (default "user:passwd")
-  -logdir string
-        runlog path (default "./")
+    	Local proxy auth username and password
+  -logfile string
+    	logger file (default "autoproxy.log")
   -mode string
-        running mode(local/proxy/domain/auto) (default "proxy")
+    	proxy mode(local/proxy/domain/auto) (default "proxy")
   -remote-address string
-        Remote proxy listening address (default "https://you.domain.com:8080")
+    	Remote proxy listening address (default "https://my.domain:8080")
   -remote-auth string
-        Remote proxy auth username and password (default "user:passwd")
+    	Remote proxy auth username and password
   -timeout int
-        connect timeout (unit second) (default 30)
+    	connect timeout (unit second) (default 30)
 ```
 
 后台启动参考：
