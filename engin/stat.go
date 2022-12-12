@@ -40,6 +40,7 @@ func display_size() string {
 func display() {
 	for {
 		time.Sleep(time.Second)
+		fmt.Print("\r                                                 ")
 		fmt.Printf("\r [version: %s session: %d, throughput: %s]", version, total_session, display_size())
 	}
 }
