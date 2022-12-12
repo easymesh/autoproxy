@@ -93,11 +93,7 @@ func parseDomain(domain string) ([]string, error) {
 	return output, nil
 }
 
-var LocalAccess engin.Access
-var LocalForward engin.Forward
-var RemoteForward engin.Forward
-
-func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) error {
+func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) (engin.Access, error) {
 	var tlsEnable bool
 	if scheme == "https" {
 		tlsEnable = true
@@ -105,7 +101,7 @@ func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) error 
 	access, err := engin.NewHttpsAccess(address, Timeout, tlsEnable, CertFile, KeyFile)
 	if err != nil {
 		logs.Error(err.Error())
-		return err
+		return nil, err
 	}
 	if auth != nil {
 		access.AuthHandlerSet(func(info *engin.AuthInfo) bool {
@@ -121,67 +117,31 @@ func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) error 
 			return false
 		})
 	}
-	LocalAccess = access
-	return nil
+	return access, nil
 }
 
-func RemoteForwardInit(scheme string, address string, auth *engin.AuthInfo) error {
+func RemoteForwardInit(scheme string, address string, auth *engin.AuthInfo) (engin.Forward, error) {
 	if net.ParseIP(address) == nil {
 		addr, err := net.ResolveTCPAddr("tcp", address)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		logs.Info("resolve %s to %s", address, addr.String())
 		address = addr.String()
 	}
 	if false == engin.IsConnect(address, Timeout) {
-		return fmt.Errorf("connect %s fail", address)
+		return nil, fmt.Errorf("connect %s fail", address)
 	}
 	var tlsEnable bool
 	if scheme == "https" {
 		tlsEnable = true
 	}
-	forward, err := engin.NewHttpsProtcal(address, Timeout, auth, tlsEnable, CertFile, KeyFile)
+	forward, err := engin.NewHttpProxyForward(address, Timeout, auth, tlsEnable, CertFile, KeyFile)
 	if err != nil {
 		logs.Error(err.Error())
-		return err
+		return nil, err
 	}
-	RemoteForward = forward
-	return nil
-}
-
-func LocalForwardFunc(address string, r *http.Request) engin.Forward {
-	return LocalForward
-}
-
-func ProxyForwardFunc(address string, r *http.Request) engin.Forward {
-	return RemoteForward
-}
-
-func DomainForwardFunc(address string, r *http.Request) engin.Forward {
-	if DomainCheck(address) {
-		logs.Info("%s auto forward to remote proxy", address)
-		return RemoteForward
-	}
-	return LocalForward
-}
-
-func AutoForwardUpdate(address string, forward engin.Forward) {
-	if forward == LocalForward {
-		AutoCheckUpdate(address, false)
-	}
-	if forward == RemoteForward {
-		AutoCheckUpdate(address, true)
-	}
-}
-
-func AutoForwardFunc(address string, r *http.Request) engin.Forward {
-	if AutoCheck(address) {
-		logs.Info("%s auto forward to local network", address)
-		return LocalForward
-	}
-	logs.Info("%s auto forward to remote proxy", address)
-	return RemoteForward
+	return forward, nil
 }
 
 func main() {
@@ -206,12 +166,15 @@ func main() {
 		panic(err.Error())
 	}
 
-	err = LocalAccessInit(scheme, address, auth)
+	var acc engin.Access
+	acc, err = LocalAccessInit(scheme, address, auth)
 	if err != nil {
 		panic(err.Error())
 	}
 
-	LocalForward, _ = engin.NewDefault(Timeout)
+	var local, proxy engin.Forward
+
+	local = engin.NewLocalForward(Timeout)
 
 	if strings.ToLower(RunMode) != "local" {
 		scheme, address, err = parseAddress(RemoteAddr)
@@ -222,7 +185,7 @@ func main() {
 		if err != nil {
 			panic(err.Error())
 		}
-		err = RemoteForwardInit(scheme, address, auth)
+		proxy, err = RemoteForwardInit(scheme, address, auth)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -236,17 +199,42 @@ func main() {
 				panic(err)
 			}
 			DomainInit(domainList)
-			LocalAccess.ForwardHandlerSet(DomainForwardFunc)
+			acc.ForwardHandlerSet(func(address string, r *http.Request) engin.Forward {
+				if DomainCheck(address) {
+					logs.Info("%s auto forward to remote proxy", address)
+					return proxy
+				}
+				return local
+			})
 		}
 	case "auto":
 		{
 			AutoInit()
-			LocalAccess.ForwardHandlerSet(AutoForwardFunc)
+			acc.ForwardHandlerSet(func(address string, r *http.Request) engin.Forward {
+				if AutoCheck(address) {
+					logs.Info("%s auto forward to local network", address)
+					return local
+				}
+				logs.Info("%s auto forward to remote proxy", address)
+				return proxy
+			})
+			acc.ForwardUpdateHandlerSet(func(address string, forward engin.Forward) {
+				if forward == local {
+					AutoCheckUpdate(address, false)
+				}
+				if forward == proxy {
+					AutoCheckUpdate(address, true)
+				}
+			})
 		}
 	case "proxy":
-		LocalAccess.ForwardHandlerSet(ProxyForwardFunc)
+		acc.ForwardHandlerSet(func(address string, r *http.Request) engin.Forward {
+			return proxy
+		})
 	case "local":
-		LocalAccess.ForwardHandlerSet(LocalForwardFunc)
+		acc.ForwardHandlerSet(func(address string, r *http.Request) engin.Forward {
+			return local
+		})
 	default:
 		panic(fmt.Sprintf("running mode(%s) not support", RunMode))
 	}
@@ -259,10 +247,10 @@ func main() {
 	sig := <-signalChan
 	logs.Info("recv signal %s, ready to exit", sig.String())
 
-	LocalAccess.Shutdown()
-	LocalForward.Close()
-	if RemoteForward != nil {
-		RemoteForward.Close()
+	acc.Shutdown()
+	local.Close()
+	if proxy != nil {
+		proxy.Close()
 	}
 	os.Exit(-1)
 }

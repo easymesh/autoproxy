@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/astaxie/beego/logs"
@@ -26,8 +25,6 @@ type HttpAccess struct {
 	forwardHandler       func(address string, r *http.Request) Forward
 	forwardUpdateHandler func(address string, forward Forward)
 	defaultForward       Forward
-
-	session int32
 }
 
 type Access interface {
@@ -97,16 +94,8 @@ func (acc *HttpAccess) AuthHttp(r *http.Request) bool {
 	return auth
 }
 
-func (acc *HttpAccess) SessionAdd() {
-	logs.SetPrefix(fmt.Sprintf("[session:%d]", atomic.AddInt32(&acc.session, 1)))
-}
-
-func (acc *HttpAccess) SessionDel() {
-	logs.SetPrefix(fmt.Sprintf("[session:%d]", atomic.AddInt32(&acc.session, -1)))
-}
-
 func (acc *HttpAccess) Shutdown() error {
-	context, cencel := context.WithTimeout(context.Background(), 15*time.Second)
+	context, cencel := context.WithTimeout(context.Background(), 30*time.Second)
 	err := acc.httpserver.Shutdown(context)
 	cencel()
 	if err != nil {
@@ -144,14 +133,14 @@ func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc.SessionAdd()
-	defer acc.SessionDel()
+	StatUpdate(1, 0)
+	defer StatUpdate(-1, 0)
 
 	var rsp *http.Response
 	var err error
 
 	if !r.URL.IsAbs() {
-		logs.Info("the request is not proxy request, transport to local network")
+		logs.Warn("the request is not proxy request, transport to local network")
 		r.URL.Host = r.Host
 		r.URL.Scheme = "http"
 		rsp, err = acc.defaultForward.Http(r)
@@ -219,7 +208,7 @@ func NewHttpsAccess(addr string, timeout int, tlsEnable bool, certfile, keyfile 
 	acc := new(HttpAccess)
 	acc.Address = addr
 	acc.Timeout = timeout
-	acc.defaultForward, _ = NewDefault(timeout)
+	acc.defaultForward = NewLocalForward(timeout)
 
 	tmout := time.Duration(timeout) * time.Second
 

@@ -15,7 +15,7 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
-type httpsProtocal struct {
+type HttpProxyForward struct {
 	auth      *AuthInfo
 	config    *tls.Config
 	address   string
@@ -25,7 +25,7 @@ type httpsProtocal struct {
 	trans     *http.Transport
 }
 
-func (h *httpsProtocal) ProxyFunc(r *http.Request) (*url.URL, error) {
+func (h *HttpProxyForward) ProxyFunc(r *http.Request) (*url.URL, error) {
 	return h.proxyfunc(r.URL)
 }
 
@@ -61,7 +61,7 @@ func httpsProxyAuthAdd(r *http.Request, auth *AuthInfo) {
 	r.Header.Add("Proxy-Authorization", basic)
 }
 
-func (h *httpsProtocal) Http(r *http.Request) (*http.Response, error) {
+func (h *HttpProxyForward) Http(r *http.Request) (*http.Response, error) {
 	rsp, err := h.trans.RoundTrip(r)
 	if err != nil {
 		errStr := fmt.Sprintf("http roundtrip %s %s fail!", r.Host, r.RemoteAddr)
@@ -70,7 +70,7 @@ func (h *httpsProtocal) Http(r *http.Request) (*http.Response, error) {
 	return rsp, err
 }
 
-func (h *httpsProtocal) Https(address string, r *http.Request) (net.Conn, error) {
+func (h *HttpProxyForward) Https(address string, r *http.Request) (net.Conn, error) {
 	server, err := net.DialTimeout("tcp", h.address, h.timeout)
 	if err != nil {
 		return nil, fmt.Errorf("connect to proxy %s failed, err=%s",
@@ -105,12 +105,12 @@ func (h *httpsProtocal) Https(address string, r *http.Request) (net.Conn, error)
 	return server, nil
 }
 
-func (d *httpsProtocal) Close() error {
+func (d *HttpProxyForward) Close() error {
 	d.trans.CloseIdleConnections()
 	return nil
 }
 
-func NewHttpsProtcal(address string, timeout int, auth *AuthInfo, tlsEnable bool, certfile, keyfile string) (Forward, error) {
+func NewHttpProxyForward(address string, timeout int, auth *AuthInfo, tlsEnable bool, certfile, keyfile string) (Forward, error) {
 	var config *tls.Config
 
 	if tlsEnable {
@@ -122,7 +122,7 @@ func NewHttpsProtcal(address string, timeout int, auth *AuthInfo, tlsEnable bool
 		}
 	}
 
-	h := new(httpsProtocal)
+	h := new(HttpProxyForward)
 	h.address = address
 	h.config = config
 	h.timeout = time.Second * time.Duration(timeout)

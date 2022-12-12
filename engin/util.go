@@ -79,14 +79,14 @@ func iocopy(c *sync.WaitGroup, in net.Conn, out net.Conn) {
 func Connect(acc *HttpAccess, in net.Conn, out net.Conn) {
 	var wg sync.WaitGroup
 
-	acc.SessionAdd()
+	StatUpdate(1, 0)
 
 	wg.Add(2)
 	go iocopy(&wg, in, out)
 	go iocopy(&wg, out, in)
 	wg.Wait()
 
-	acc.SessionDel()
+	StatUpdate(-1, 0)
 
 	logs.Info("connect %s <-> %s close", in.RemoteAddr(), out.RemoteAddr())
 }
