@@ -1,0 +1,6 @@
+/.idea
+*.log
+*.exe
+*.gz
+*.exe~
+*.zip
