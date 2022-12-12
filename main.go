@@ -42,13 +42,13 @@ func init() {
 	flag.StringVar(&LocalAddr, "local-address", "http://0.0.0.0:8080", "Local proxy listening address")
 	flag.StringVar(&LocalAuth, "local-auth", "", "Local proxy auth username and password")
 
-	flag.StringVar(&RemoteAddr, "remote-address", "https://you.domain.com:8080", "Remote proxy listening address")
+	flag.StringVar(&RemoteAddr, "remote-address", "https://my.domain:8080", "Remote proxy listening address")
 	flag.StringVar(&RemoteAuth, "remote-auth", "", "Remote proxy auth username and password")
 
 	flag.StringVar(&RunMode, "mode", "proxy", "proxy mode(local/proxy/domain/auto)")
 	flag.StringVar(&DomainFile, "domain", "domain.json", "match domain list file(domain mode requires)")
 
-	flag.BoolVar(&Debug, "debug", false, "enable debug")
+	flag.BoolVar(&Debug, "debug", false, "enable enhanced logger")
 	flag.BoolVar(&Help, "help", false, "usage help")
 }
 
@@ -166,8 +166,18 @@ func DomainForwardFunc(address string, r *http.Request) engin.Forward {
 	return LocalForward
 }
 
+func AutoForwardUpdate(address string, forward engin.Forward) {
+	if forward == LocalForward {
+		AutoCheckUpdate(address, false)
+	}
+	if forward == RemoteForward {
+		AutoCheckUpdate(address, true)
+	}
+}
+
 func AutoForwardFunc(address string, r *http.Request) engin.Forward {
 	if AutoCheck(address) {
+		logs.Info("%s auto forward to local network", address)
 		return LocalForward
 	}
 	logs.Info("%s auto forward to remote proxy", address)

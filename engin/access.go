@@ -22,9 +22,10 @@ type HttpAccess struct {
 	httpserver *http.Server
 	sync.WaitGroup
 
-	authHandler    func(auth *AuthInfo) bool
-	forwardHandler func(address string, r *http.Request) Forward
-	defaultForward Forward
+	authHandler          func(auth *AuthInfo) bool
+	forwardHandler       func(address string, r *http.Request) Forward
+	forwardUpdateHandler func(address string, forward Forward)
+	defaultForward       Forward
 
 	session int32
 }
@@ -33,6 +34,7 @@ type Access interface {
 	Shutdown() error
 	AuthHandlerSet(func(*AuthInfo) bool)
 	ForwardHandlerSet(func(address string, r *http.Request) Forward)
+	ForwardUpdateHandlerSet(func(address string, forward Forward))
 }
 
 func HttpError(w http.ResponseWriter, err string, code int) {
@@ -75,6 +77,10 @@ func (acc *HttpAccess) AuthHandlerSet(handler func(auth *AuthInfo) bool) {
 
 func (acc *HttpAccess) ForwardHandlerSet(handler func(address string, r *http.Request) Forward) {
 	acc.forwardHandler = handler
+}
+
+func (acc *HttpAccess) ForwardUpdateHandlerSet(handler func(address string, forward Forward)) {
+	acc.forwardUpdateHandler = handler
 }
 
 func (acc *HttpAccess) AuthHttp(r *http.Request) bool {
@@ -131,12 +137,12 @@ func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Header.Add("AUTOPROXY", GetUUID())
+
 	if r.Method == "CONNECT" {
 		acc.HttpsRoundTripper(w, r)
 		return
 	}
-
-	r.Header.Add("AUTOPROXY", GetUUID())
 
 	acc.SessionAdd()
 	defer acc.SessionDel()
@@ -145,6 +151,7 @@ func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var err error
 
 	if !r.URL.IsAbs() {
+		logs.Info("the request is not proxy request, transport to local network")
 		r.URL.Host = r.Host
 		r.URL.Scheme = "http"
 		rsp, err = acc.defaultForward.Http(r)

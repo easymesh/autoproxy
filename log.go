@@ -5,8 +5,8 @@ import (
 )
 
 func LogInit(debug bool) error {
+	logs.SetLogger(logs.AdapterConsole)
 	if debug {
-		logs.SetLogger(logs.AdapterConsole)
 		logs.EnableFuncCallDepth(true)
 		logs.SetLogFuncCallDepth(3)
 	}

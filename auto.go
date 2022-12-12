@@ -113,3 +113,16 @@ func AutoCheck(address string) bool {
 
 	return result.Access
 }
+
+func AutoCheckUpdate(address string, access bool) {
+	autoCtrl.RLock()
+	result, ok := autoCtrl.cache[address]
+	autoCtrl.RUnlock()
+
+	if !ok || result.Access != access {
+		autoCtrl.Lock()
+		autoCtrl.cache[address] = LocalAccessInfo{address, access}
+		syncToFile()
+		autoCtrl.Unlock()
+	}
+}
