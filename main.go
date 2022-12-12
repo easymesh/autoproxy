@@ -19,7 +19,6 @@ import (
 
 var (
 	Help    bool
-	Debug   bool
 	Timeout int
 
 	LocalAddr  string
@@ -31,6 +30,7 @@ var (
 	DomainFile string
 	CertFile   string
 	KeyFile    string
+	LogFile    string
 )
 
 func init() {
@@ -48,7 +48,7 @@ func init() {
 	flag.StringVar(&RunMode, "mode", "proxy", "proxy mode(local/proxy/domain/auto)")
 	flag.StringVar(&DomainFile, "domain", "domain.json", "match domain list file(domain mode requires)")
 
-	flag.BoolVar(&Debug, "debug", false, "enable enhanced logger")
+	flag.StringVar(&LogFile, "logfile", "autoproxy.log", "logger file")
 	flag.BoolVar(&Help, "help", false, "usage help")
 }
 
@@ -151,10 +151,7 @@ func main() {
 		return
 	}
 
-	err := LogInit(Debug)
-	if err != nil {
-		panic(err.Error())
-	}
+	LogInit(LogFile)
 
 	scheme, address, err := parseAddress(LocalAddr)
 	if err != nil {

@@ -70,6 +70,8 @@ func iocopy(c *sync.WaitGroup, in net.Conn, out net.Conn) {
 	size, err := io.Copy(in, out)
 	if size == 0 && err != nil {
 		logs.Warn("io copy fail", err.Error())
+	} else {
+		StatUpdate(0, size)
 	}
 
 	in.Close()

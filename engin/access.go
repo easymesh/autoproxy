@@ -169,6 +169,8 @@ func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	size, err := io.Copy(w, rsp.Body)
 	if size == 0 && err != nil {
 		logs.Warn("io copy fail", err.Error())
+	} else {
+		StatUpdate(0, size)
 	}
 	rsp.Body.Close()
 }
