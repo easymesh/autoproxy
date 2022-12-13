@@ -68,16 +68,7 @@ func parseAddress(addr string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	scheme := strings.ToLower(ul.Scheme)
-	host := ul.Host
-	if -1 == strings.Index(host, ":") {
-		if scheme == "https" {
-			host += "443"
-		} else {
-			host += "80"
-		}
-	}
-	return scheme, host, nil
+	return strings.ToLower(ul.Scheme), engin.Address(ul), nil
 }
 
 func parseDomain(domain string) ([]string, error) {

@@ -43,7 +43,11 @@ func IsConnect(address string, timeout int) bool {
 func Address(u *url.URL) string {
 	host := u.Host
 	if strings.Index(host, ":") == -1 {
-		host += ":80"
+		if strings.ToLower(u.Scheme) == "https" {
+			host += "443"
+		} else {
+			host += "80"
+		}
 	}
 	return host
 }
