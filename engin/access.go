@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -35,7 +36,7 @@ type Access interface {
 }
 
 func HttpError(w http.ResponseWriter, err string, code int) {
-	time.Sleep(3 * time.Second) // 防DOS攻击延时
+	time.Sleep(time.Second)
 	http.Error(w, err, code)
 }
 
@@ -188,6 +189,76 @@ func removeProxyHeaders(r *http.Request) {
 	r.Header.Del("Proxy-Connection")
 	r.Header.Del("Proxy-Authenticate")
 	r.Header.Del("Proxy-Authorization")
+}
+
+func (acc *HttpAccess) ForwardUpdate(address string, forward Forward) {
+	if acc.forwardUpdateHandler != nil {
+		acc.forwardUpdateHandler(address, forward)
+	}
+}
+
+func (acc *HttpAccess) HttpsForward(address string, r *http.Request) (net.Conn, error) {
+	if acc.forwardHandler == nil {
+		return nil, fmt.Errorf("forward handler is null")
+	}
+	forward := acc.forwardHandler(address, r)
+	conn, err := forward.Https(address, r)
+	if err != nil {
+		acc.ForwardUpdate(address, forward)
+	}
+	return conn, err
+}
+
+func (acc *HttpAccess) HttpForward(address string, r *http.Request) (*http.Response, error) {
+	if acc.forwardHandler == nil {
+		return nil, fmt.Errorf("forward handler is null")
+	}
+	forward := acc.forwardHandler(address, r)
+	conn, err := forward.Http(r)
+	if err != nil {
+		acc.ForwardUpdate(address, forward)
+	}
+	return conn, err
+}
+
+func (acc *HttpAccess) HttpsRoundTripper(w http.ResponseWriter, r *http.Request) {
+	address := Address(r.URL)
+	server, err := acc.HttpsForward(address, r)
+	if err != nil {
+		errstr := fmt.Sprintf("can't forward hostname %s", address)
+		logs.Error(errstr, err.Error())
+		HttpError(w, errstr, http.StatusInternalServerError)
+		return
+	}
+
+	hij, ok := w.(http.Hijacker)
+	if !ok {
+		logs.Error("httpserver does not support hijacking")
+		panic("golang sdk is too old.")
+	}
+
+	client, _, err := hij.Hijack()
+	if err != nil {
+		logs.Error("Cannot hijack connection", err.Error())
+		panic("golang sdk is too old.")
+	}
+
+	err = WriteFull(client, []byte("HTTP/1.1 200 Connection Established\r\n\r\n"))
+	if err != nil {
+		errstr := fmt.Sprintf("client connect %s fail", client.RemoteAddr())
+		logs.Error(errstr, err.Error())
+		client.Close()
+		return
+	}
+
+	go Connect(acc, client, server)
+}
+
+func (acc *HttpAccess) HttpRoundTripper(r *http.Request) (*http.Response, error) {
+	if r.Body != nil {
+		r.Body = ioutil.NopCloser(r.Body)
+	}
+	return acc.HttpForward(Address(r.URL), r)
 }
 
 func NewHttpsAccess(addr string, timeout int, tlsEnable bool, certfile, keyfile string) (Access, error) {
