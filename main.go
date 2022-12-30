@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -69,19 +67,6 @@ func parseAddress(addr string) (string, string, error) {
 		return "", "", err
 	}
 	return strings.ToLower(ul.Scheme), engin.Address(ul), nil
-}
-
-func parseDomain(domain string) ([]string, error) {
-	body, err := ioutil.ReadFile(domain)
-	if err != nil {
-		return nil, err
-	}
-	var output []string
-	err = json.Unmarshal(body, &output)
-	if err != nil {
-		return nil, err
-	}
-	return output, nil
 }
 
 func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) (engin.Access, error) {
@@ -182,11 +167,7 @@ func main() {
 	switch strings.ToLower(RunMode) {
 	case "domain":
 		{
-			domainList, err := parseDomain(DomainFile)
-			if err != nil {
-				panic(err)
-			}
-			DomainInit(domainList)
+			DomainInit(DomainFile)
 			acc.ForwardHandlerSet(func(address string, r *http.Request) engin.Forward {
 				if DomainCheck(address) {
 					logs.Info("%s auto forward to remote proxy", address)

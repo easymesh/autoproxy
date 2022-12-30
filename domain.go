@@ -1,10 +1,14 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/astaxie/beego/logs"
+	"github.com/easymesh/autoproxy/engin"
 )
 
 type DomainCtrl struct {
@@ -15,9 +19,45 @@ type DomainCtrl struct {
 
 var forwardCtrl DomainCtrl
 
-func DomainInit(domain []string) {
+func DomainInit(file string) {
+	forwardCtrl.cache = make(map[string]string, 100)
+	forwardCtrl.domain = make([]string, 100)
+	domainFromFile(file)
+	go syncDomainTask(file)
+}
+
+func syncDomainTask(file string) {
+	time1 := engin.GetFileTimestamp(file)
+	for {
+		time.Sleep(time.Second)
+		time2 := engin.GetFileTimestamp(file)
+		if time2 != time1 {
+			domainFromFile(file)
+		}
+		time1 = time2
+	}
+}
+
+func domainFromFile(file string) {
+	forwardCtrl.Lock()
+	defer forwardCtrl.Unlock()
+
+	body, err := ioutil.ReadFile(file)
+	if err != nil {
+		logs.Warning(err.Error())
+		return
+	}
+	var domain []string
+	err = json.Unmarshal(body, &domain)
+	if err != nil {
+		logs.Warning(err.Error())
+		return
+	}
+
 	forwardCtrl.cache = make(map[string]string, 100)
 	forwardCtrl.domain = domain
+
+	logs.Info("sync %d from domain file success", len(domain))
 }
 
 func domainGet(address string) string {
