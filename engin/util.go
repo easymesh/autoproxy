@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -95,4 +96,13 @@ func Connect(acc *HttpAccess, in net.Conn, out net.Conn) {
 	StatUpdate(-1, 0)
 
 	logs.Info("connect %s <-> %s close", in.RemoteAddr(), out.RemoteAddr())
+}
+
+func GetFileTimestamp(file string) time.Time {
+	info, err := os.Stat(file)
+	if err != nil {
+		logs.Warning(err.Error())
+		return time.Time{}
+	}
+	return info.ModTime()
 }

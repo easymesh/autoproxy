@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"sync"
 	"time"
 
@@ -30,29 +29,20 @@ var autoCtrl AutoCtrl
 func AutoInit() {
 	autoCtrl.cache = make(map[string]LocalAccessInfo, 100)
 	syncFromFile()
-	go syncTask()
+	go syncAutoTask()
 }
 
-func cacheFileTimestamp() time.Time {
-	info, err := os.Stat(CACHE_FILE)
-	if err != nil {
-		logs.Warning(err.Error())
-		return time.Time{}
-	}
-	return info.ModTime()
-}
-
-func syncTask() {
-	time1 := cacheFileTimestamp()
+func syncAutoTask() {
+	time1 := engin.GetFileTimestamp(CACHE_FILE)
 	for {
 		time.Sleep(time.Second)
-		time2 := cacheFileTimestamp()
+		time2 := engin.GetFileTimestamp(CACHE_FILE)
 		if time2 != time1 {
 			autoCtrl.Lock()
 			syncFromFile()
 			autoCtrl.Unlock()
 		}
-		time1 = cacheFileTimestamp()
+		time1 = time2
 	}
 }
 
