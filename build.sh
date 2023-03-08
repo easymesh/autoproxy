@@ -17,7 +17,7 @@ function build_once()
 	rm -rf $DIR
 }
 
-rm -rf *.zip
+rm -rf ./*.zip
 
 build_once windows amd64 .exe
 build_once windows 386 .exe
