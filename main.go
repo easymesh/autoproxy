@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -97,17 +96,6 @@ func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) (engin
 }
 
 func RemoteForwardInit(scheme string, address string, auth *engin.AuthInfo) (engin.Forward, error) {
-	if net.ParseIP(address) == nil {
-		addr, err := net.ResolveTCPAddr("tcp", address)
-		if err != nil {
-			return nil, err
-		}
-		logs.Info("resolve %s to %s", address, addr.String())
-		address = addr.String()
-	}
-	if false == engin.IsConnect(address, Timeout) {
-		return nil, fmt.Errorf("connect %s fail", address)
-	}
 	var tlsEnable bool
 	if scheme == "https" {
 		tlsEnable = true
