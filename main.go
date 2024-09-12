@@ -28,25 +28,28 @@ var (
 	CertFile   string
 	KeyFile    string
 	LogFile    string
+
+	Stat  bool
 )
 
 func init() {
-	flag.StringVar(&KeyFile, "key-file", "", "tls key file pem format")
-	flag.StringVar(&CertFile, "cert-file", "", "tls cert file pem format")
+	flag.StringVar(&KeyFile, "key-file", "", "tls key file pem format, if not set, the program will automatically generate")
+	flag.StringVar(&CertFile, "cert-file", "", "tls cert file pem format, if not set, the program will automatically generate")
 
 	flag.IntVar(&Timeout, "timeout", 30, "connect timeout (unit second)")
 
 	flag.StringVar(&LocalAddr, "local-address", "http://0.0.0.0:8080", "Local proxy listening address")
 	flag.StringVar(&LocalAuth, "local-auth", "", "Local proxy auth username and password")
 
-	flag.StringVar(&RemoteAddr, "remote-address", "https://my.domain:8080", "Remote proxy listening address")
+	flag.StringVar(&RemoteAddr, "remote-address", "https://your.vps:8080", "Remote proxy listening address")
 	flag.StringVar(&RemoteAuth, "remote-auth", "", "Remote proxy auth username and password")
 
 	flag.StringVar(&RunMode, "mode", "proxy", "proxy mode(local/proxy/domain/auto)")
 	flag.StringVar(&DomainFile, "domain", "domain.json", "match domain list file(domain mode requires)")
 
-	flag.StringVar(&LogFile, "logfile", "autoproxy.log", "logger file")
+	flag.StringVar(&LogFile, "logfile", "", "the logging file, using the stdout as default.")
 	flag.BoolVar(&Help, "help", false, "usage help")
+	flag.BoolVar(&Stat, "stat", false, "display the traffic statistics in a loop timer")
 }
 
 func parseAuth(auth string) (*engin.AuthInfo, error) {
@@ -197,6 +200,10 @@ func main() {
 	}
 
 	logs.Info("autoproxy %s instance %s running mode %s success", VersionGet(), engin.GetUUID(), RunMode)
+
+	if Stat {
+		go engin.Display()
+	}
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)

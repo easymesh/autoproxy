@@ -37,7 +37,7 @@ func display_size() string {
 	return fmt.Sprintf("%.f B", size)
 }
 
-func display() {
+func Display() {
 	for {
 		time.Sleep(time.Second)
 		fmt.Print("\r                                                             ")
@@ -47,8 +47,4 @@ func display() {
 
 func SetVersion(v string) {
 	version = v
-}
-
-func init() {
-	go display()
 }
