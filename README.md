@@ -1,9 +1,12 @@
 # Autoproxy
 
-[English](./README.md)
-[中文](./README_ZH_CN.md) 
-
 The project provides browser http proxy proxy service, supports https and http protocol proxy; can deploy multi-level proxy; supports TLS protocol encryption; mainly uses tools for accessing external websites with intranet hosts;
+
+## Build
+- Prepare linux amd64 and golang.
+- `git clone https://github.com/easymesh/autoproxy.git`
+- `cd autoproxy`
+- `bash build.sh`
 
 ## Features
 - Support multiple forwarding modes
@@ -45,27 +48,29 @@ The project provides browser http proxy proxy service, supports https and http p
 ```
 Usage of ./autoproxy:
   -cert-file string
-    	tls cert file pem format
+        tls cert file pem format, if not set, the program will automatically generate
   -domain string
-    	match domain list file(domain mode requires) (default "domain.json")
+        match domain list file(domain mode requires) (default "domain.json")
   -help
-    	usage help
+        usage help
   -key-file string
-    	tls key file pem format
+        tls key file pem format, if not set, the program will automatically generate
   -local-address string
-    	Local proxy listening address (default "http://0.0.0.0:8080")
+        Local proxy listening address (default "http://0.0.0.0:8080")
   -local-auth string
-    	Local proxy auth username and password
+        Local proxy auth username and password
   -logfile string
-    	logger file (default "autoproxy.log")
+        the logging file, using the stdout as default.
   -mode string
-    	proxy mode(local/proxy/domain/auto) (default "proxy")
+        proxy mode(local/proxy/domain/auto) (default "proxy")
   -remote-address string
-    	Remote proxy listening address (default "https://my.domain:8080")
+        Remote proxy listening address (default "https://your.vps:8080")
   -remote-auth string
-    	Remote proxy auth username and password
+        Remote proxy auth username and password
+  -stat
+        display the traffic statistics in a loop timer
   -timeout int
-    	connect timeout (unit second) (default 30)
+        connect timeout (unit second) (default 30)
 ```
 Of course you can modify and run again
 
