@@ -55,8 +55,5 @@ func AuthCache(r *http.Request) bool {
 	defer authctrl.RUnlock()
 
 	_, ok := authctrl.Cache[address]
-	if ok {
-		return true
-	}
-	return false
+	return ok
 }
