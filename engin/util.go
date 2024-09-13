@@ -24,7 +24,6 @@ var (
 )
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
 	uuid = fmt.Sprintf("%08X-%016X-%08X", rand.Int31(), rand.Int63(), rand.Int31())
 }
 
@@ -41,13 +40,59 @@ func IsConnect(address string, timeout int) bool {
 	return true
 }
 
+/* covert HOST to ip address with port
+[2409:8a28:c4d:a181::42d]:8070 -> [2409:8a28:c4d:a181::42d]:8070
+[2409:8a28:c4d:a181::42d]:8070 -> [2409:8a28:c4d:a181::42d]:8070
+2409:8a28:c4d:a181::42d:8070 -> [2409:8a28:c4d:a181::42d]:8070
+2409:8a28:c4d:a181::42d:8070 -> [2409:8a28:c4d:a181::42d]:8070
+2409:8a28:c4d:a181::42d -> [2409:8a28:c4d:a181::42d]:80
+2409:8a28:c4d:a181::42d -> [2409:8a28:c4d:a181::42d]:443
+192.168.3.1:111 -> 192.168.3.1:111
+192.168.3.1:111 -> 192.168.3.1:111
+192.168.1.1 -> 192.168.1.1:80
+192.168.1.1 -> 192.168.1.1:443
+demo.abc.a:111 -> demo.abc.a:111
+demo.abc.a:111 -> demo.abc.a:111
+demo.abc -> demo.abc:80
+demo.abc -> demo.abc:443
+*/
+
 func Address(u *url.URL) string {
 	host := u.Host
-	if strings.Index(host, ":") == -1 {
-		if strings.ToLower(u.Scheme) == "https" {
-			host += "443"
-		} else {
-			host += "80"
+
+	var defaut_port string
+	if strings.ToLower(u.Scheme) == "https" {
+		defaut_port = "443"
+	} else {
+		defaut_port = "80"
+	}
+
+	count := strings.Count(host, ":")
+	if count == 0 {
+		return host + ":" + defaut_port
+	}
+
+	if count > 1 {
+		index := strings.LastIndex(host, ":")
+		addr := host[:index]
+		port := host[index+1:]
+
+		ip := net.ParseIP(addr)
+		if ip != nil {
+			if len(ip.To4()) == net.IPv4len {
+				return ip.String() + ":" + port
+			} else {
+				return "[" + ip.String() + "]:" + port
+			}
+		}
+
+		ip = net.ParseIP(host)
+		if ip != nil {
+			if len(ip.To4()) == net.IPv4len {
+				return ip.String() + ":" + defaut_port
+			} else {
+				return "[" + ip.String() + "]:" + defaut_port
+			}
 		}
 	}
 	return host
@@ -74,7 +119,9 @@ func iocopy(c *sync.WaitGroup, in net.Conn, out net.Conn) {
 
 	size, err := io.Copy(in, out)
 	if size == 0 && err != nil {
-		logs.Warn("io copy fail", err.Error())
+		if err != io.EOF {
+			logs.Info("io copy fail", err.Error())
+		}
 	} else {
 		StatUpdate(0, size)
 	}

@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"strings"
@@ -111,7 +110,7 @@ func DebugReqeust(r *http.Request) {
 	for key, value := range r.Header {
 		headers += fmt.Sprintf("[%s:%s]", key, value)
 	}
-	logs.Info("%s %s %s %s %s %s", r.RemoteAddr, r.Host, r.URL.Scheme, r.Method, r.URL.String(), headers)
+	logs.Info("RemoteAddr:%s Host:%s Scheme:%s Method:%s URL:%s Header:%s", r.RemoteAddr, r.Host, r.URL.Scheme, r.Method, r.URL.String(), headers)
 }
 
 func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +168,9 @@ func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	size, err := io.Copy(w, rsp.Body)
 	if size == 0 && err != nil {
-		logs.Warn("io copy fail", err.Error())
+		if err != io.EOF {
+			logs.Info("io copy fail", err.Error())
+		}
 	} else {
 		StatUpdate(0, size)
 	}
@@ -256,7 +257,7 @@ func (acc *HttpAccess) HttpsRoundTripper(w http.ResponseWriter, r *http.Request)
 
 func (acc *HttpAccess) HttpRoundTripper(r *http.Request) (*http.Response, error) {
 	if r.Body != nil {
-		r.Body = ioutil.NopCloser(r.Body)
+		r.Body = io.NopCloser(r.Body)
 	}
 	return acc.HttpForward(Address(r.URL), r)
 }
