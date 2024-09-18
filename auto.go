@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"os"
 	"sync"
 	"time"
 
@@ -48,7 +48,7 @@ func syncAutoTask() {
 
 func syncFromFile() {
 	var list []LocalAccessInfo
-	body, err := ioutil.ReadFile(CACHE_FILE)
+	body, err := os.ReadFile(CACHE_FILE)
 	if err != nil {
 		logs.Warning(err.Error())
 		return
@@ -79,7 +79,7 @@ func syncToFile() {
 		logs.Error(err.Error())
 		return
 	}
-	err = ioutil.WriteFile(CACHE_FILE, body, 0644)
+	err = os.WriteFile(CACHE_FILE, body, 0644)
 	if err != nil {
 		logs.Error(err.Error())
 	}

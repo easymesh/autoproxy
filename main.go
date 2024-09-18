@@ -29,7 +29,7 @@ var (
 	KeyFile    string
 	LogFile    string
 
-	Stat  bool
+	Stat bool
 )
 
 func init() {
@@ -58,7 +58,7 @@ func parseAuth(auth string) (*engin.AuthInfo, error) {
 	}
 	list := strings.Split(auth, ":")
 	if len(list) != 2 {
-		return nil, fmt.Errorf("Authentication information '%s' is incorrect", auth)
+		return nil, fmt.Errorf("authentication information '%s' is incorrect", auth)
 	}
 	return &engin.AuthInfo{User: list[0], Token: list[1]}, nil
 }
@@ -82,16 +82,18 @@ func LocalAccessInit(scheme string, address string, auth *engin.AuthInfo) (engin
 		return nil, err
 	}
 	if auth != nil {
+		logs.Info("local service enable auth [%s:%s]", auth.User, auth.Token)
 		access.AuthHandlerSet(func(info *engin.AuthInfo) bool {
-			logs.Info("auth request %v", info)
 			if info == nil {
+				logs.Info("auth request auth not exist")
 				return false
 			}
+			logs.Info("auth request auth [%s:%s]", info.User, info.Token)
 			if info.User == auth.User && info.Token == auth.Token {
-				logs.Info("auth success")
+				logs.Info("auth passed")
 				return true
 			}
-			logs.Info("auth fail")
+			logs.Info("auth fail, not match")
 			return false
 		})
 	}
@@ -206,7 +208,7 @@ func main() {
 	}
 
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	sig := <-signalChan
 	logs.Info("recv signal %s, ready to exit", sig.String())

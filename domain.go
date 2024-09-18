@@ -92,10 +92,7 @@ func domainMatch(domain string, match string) bool {
 		}
 	}
 	idx := strings.Index(domain, match[begin+1:end])
-	if idx == -1 {
-		return false
-	}
-	return true
+	return idx != -1
 }
 
 // address: www.baidu.com:80 or www.baidu.com:443
@@ -118,7 +115,7 @@ func DomainCheck(address string) bool {
 	result, flag := forwardCtrl.cache[address]
 	forwardCtrl.RUnlock()
 
-	if flag == false {
+	if !flag {
 		forwardCtrl.Lock()
 		result = routeMatch(address)
 		forwardCtrl.Unlock()

@@ -7,5 +7,5 @@ func init() {
 }
 
 func VersionGet() string {
-	return "v1.7.2"
+	return "v1.7.3"
 }

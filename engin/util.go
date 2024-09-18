@@ -57,14 +57,10 @@ demo.abc -> demo.abc:80
 demo.abc -> demo.abc:443
 */
 
-func Address(u *url.URL) string {
-	host := u.Host
-
-	var defaut_port string
-	if strings.ToLower(u.Scheme) == "https" {
+func parseAddress(schema string, host string) string {
+	defaut_port := "80"
+	if strings.ToLower(schema) == "https" {
 		defaut_port = "443"
-	} else {
-		defaut_port = "80"
 	}
 
 	count := strings.Count(host, ":")
@@ -96,6 +92,12 @@ func Address(u *url.URL) string {
 		}
 	}
 	return host
+}
+
+func Address(u *url.URL) string {
+	addr := parseAddress(u.Scheme, u.Host)
+	logs.Info("Parse URL %s to %s", u.String(), addr)
+	return addr
 }
 
 func WriteFull(w io.Writer, body []byte) error {

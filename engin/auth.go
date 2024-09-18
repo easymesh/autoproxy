@@ -42,6 +42,8 @@ func init() {
 func AuthLogin(r *http.Request) {
 	address := strings.Split(r.RemoteAddr, ":")[0]
 
+	logs.Info("auth login with address %s in cache", address)
+
 	authctrl.Lock()
 	defer authctrl.Unlock()
 

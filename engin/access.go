@@ -84,11 +84,11 @@ func (acc *HttpAccess) AuthHttp(r *http.Request) bool {
 	if acc.authHandler == nil {
 		return true
 	}
-	if AuthCache(r) == true {
+	if AuthCache(r) {
 		return true
 	}
 	auth := acc.authHandler(AuthInfoParse(r))
-	if auth == true {
+	if auth {
 		AuthLogin(r)
 	}
 	return auth
@@ -121,7 +121,7 @@ func (acc *HttpAccess) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if acc.AuthHttp(r) == false {
+	if !acc.AuthHttp(r) {
 		AuthFailHandler(w, r)
 		return
 	}
@@ -276,6 +276,8 @@ func NewHttpsAccess(addr string, timeout int, tlsEnable bool, certfile, keyfile 
 			logs.Error("make tls config server fail, %s", err.Error())
 			return nil, err
 		}
+		logs.Info("enable TLS for %s", addr)
+
 		lis = tls.NewListener(lis, config)
 	}
 
@@ -305,11 +307,11 @@ func NewHttpsAccess(addr string, timeout int, tlsEnable bool, certfile, keyfile 
 		}
 	}()
 
-	if config == nil {
-		logs.Info("access http start success.")
-	} else {
-		logs.Info("access https start success.")
+	schema := "http"
+	if config != nil {
+		schema = "https"
 	}
 
+	logs.Info("listen local %s://%s as service with timeout %d seconds success.", schema, lis.Addr().String(), timeout)
 	return acc, nil
 }
